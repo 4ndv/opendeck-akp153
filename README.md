@@ -14,6 +14,7 @@ Requires OpenDeck 2.5.0 or newer
 - Ajazz AKP153 (5548:6674)
 - Ajazz AKP153E (0300:1010)
 - Ajazz AKP153R (0300:1020)
+- Risemode Vision 01 (0a00:1001)
 
 ## Platform support
 

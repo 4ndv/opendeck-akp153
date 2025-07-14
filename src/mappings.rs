@@ -26,11 +26,13 @@ pub enum Kind {
     AKP153E,
     AKP153R,
     GK150K,
+    RMV01
 }
 
 pub const AJAZZ_VID: u16 = 0x0300;
 pub const MIRABOX_VID: u16 = 0x5548;
 pub const MADDOG_VID: u16 = 0x0c00;
+pub const RISEMODE_VID: u16 = 0x0a00;
 
 pub const HSV293S_PID: u16 = 0x6670;
 
@@ -40,19 +42,23 @@ pub const AKP153R_PID: u16 = 0x1020;
 
 pub const GK150K_PID: u16 = 0x1000;
 
+pub const RMV01_PID: u16 = 0x1001;
+
 // Map all queries to usage page 65440 and usage id 1 for now
 pub const HSV293S_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_VID, HSV293S_PID);
 pub const AKP153_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153_PID);
 pub const AKP153E_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_PID);
 pub const AKP153R_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153R_PID);
 pub const GK150K_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MADDOG_VID, GK150K_PID);
+pub const RMV01_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, RISEMODE_VID, RMV01_PID);
 
-pub const QUERIES: [DeviceQuery; 5] = [
+pub const QUERIES: [DeviceQuery; 6] = [
     HSV293S_QUERY,
     AKP153_QUERY,
     AKP153E_QUERY,
     AKP153R_QUERY,
     GK150K_QUERY,
+    RMV01_QUERY,
 ];
 
 impl Kind {
@@ -73,6 +79,11 @@ impl Kind {
 
             MADDOG_VID => match pid {
                 GK150K_PID => Some(Kind::GK150K),
+                _ => None,
+            },
+
+            RISEMODE_VID => match pid {
+                RMV01_PID => Some(Kind::RMV01),
                 _ => None,
             },
 
@@ -99,6 +110,7 @@ impl Kind {
             Self::AKP153R => "Ajazz AKP153R",
             Self::HSV293S => "Mirabox HSV293S",
             Self::GK150K => "Mad Dog GK150K",
+            Self::RMV01 => "Risemode Vision 01",
         }
         .to_string()
     }
@@ -112,6 +124,7 @@ impl Kind {
             Self::AKP153R => "153R",
             Self::HSV293S => "293S",
             Self::GK150K => "GK150K",
+            Self::RMV01 => "RMV01",
         }
         .to_string()
     }
