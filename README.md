@@ -16,6 +16,7 @@ Requires OpenDeck 2.5.0 or newer
 - Ajazz AKP153R (0300:1020)
 - Maddog GK150K (0c00:1000)
 - Risemode Vision 01 (0a00:1001)
+- TMICE Stream Controller (0500:1001)
 
 ## Platform support
 
