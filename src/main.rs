@@ -3,11 +3,18 @@ use mirajazz::device::Device;
 use openaction::*;
 use std::{collections::HashMap, process::exit, sync::LazyLock};
 use tokio::sync::{Mutex, RwLock};
+use tokio::task::spawn_blocking;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use watcher::watcher_task;
 
 #[cfg(not(target_os = "windows"))]
 use tokio::signal::unix::{SignalKind, signal};
+
+#[cfg(target_os = "windows")]
+use windows::{
+    Win32::{Foundation::*, System::LibraryLoader::GetModuleHandleA, UI::WindowsAndMessaging::*},
+    core::s,
+};
 
 mod device;
 mod inputs;
@@ -121,10 +128,67 @@ async fn sigterm() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(target_os = "windows")]
 async fn sigterm() -> Result<(), Box<dyn std::error::Error>> {
-    // Future that would never resolve, so select only acts on OpenDeck connection loss
-    // TODO: Proper windows termination handling
-    std::future::pending::<()>().await;
+    spawn_blocking(|| {
+        log::debug!("Creating dummy window to catch messages");
+        let instance = unsafe { GetModuleHandleA(None).unwrap_or_default() };
+        let window_class = s!("__ss550_event_listener");
 
+        unsafe extern "system" fn wnd_proc(
+            hwnd: HWND,
+            msg: u32,
+            wparam: WPARAM,
+            lparam: LPARAM,
+        ) -> LRESULT {
+            match msg {
+                WM_DESTROY => {
+                    log::debug!("Received WM_DESTROY");
+                    unsafe { PostQuitMessage(0) };
+                    LRESULT(0)
+                }
+                WM_ENDSESSION => {
+                    log::debug!("Received WM_ENDSESSION");
+                    unsafe { PostQuitMessage(0) };
+                    LRESULT(0)
+                }
+                _ => unsafe { DefWindowProcA(hwnd, msg, wparam, lparam) },
+            }
+        }
+
+        let wnd_class = WNDCLASSA {
+            hInstance: instance.into(),
+            lpszClassName: window_class,
+            lpfnWndProc: Some(wnd_proc),
+            ..Default::default()
+        };
+
+        unsafe {
+            RegisterClassA(&wnd_class);
+
+            CreateWindowExA(
+                WINDOW_EX_STYLE::default(),
+                window_class,
+                s!("__ss550_dummy_window"),
+                WS_OVERLAPPEDWINDOW,
+                CW_USEDEFAULT,
+                CW_USEDEFAULT,
+                CW_USEDEFAULT,
+                CW_USEDEFAULT,
+                None,
+                None,
+                Some(instance.into()),
+                None,
+            )
+            .expect("Failed to create window");
+
+            log::debug!("Starting message loop");
+            let mut msg = MSG::default();
+            while GetMessageA(&mut msg, None, 0, 0).into() {
+                DispatchMessageA(&msg);
+            }
+            log::debug!("Message loop exited. Considering it as a sigterm");
+        }
+    })
+    .await?;
     Ok(())
 }
 
