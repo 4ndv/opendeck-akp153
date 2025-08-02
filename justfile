@@ -15,7 +15,7 @@ clean:
     sudo rm -rf target/
 
 collect:
-    rm -r build
+    rm -rf build
     mkdir -p build/{{id}}
     cp -r assets build/{{id}}
     cp manifest.json build/{{id}}
