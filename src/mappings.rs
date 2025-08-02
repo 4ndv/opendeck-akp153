@@ -24,6 +24,7 @@ pub enum Kind {
     HSV293S,
     AKP153,
     AKP153E,
+    AKP153EREV2,
     AKP153R,
     GK150K,
     RMV01,
@@ -40,6 +41,7 @@ pub const HSV293S_PID: u16 = 0x6670;
 
 pub const AKP153_PID: u16 = 0x6674;
 pub const AKP153E_PID: u16 = 0x1010;
+pub const AKP153E_REV2_PID: u16 = 0x3010;
 pub const AKP153R_PID: u16 = 0x1020;
 
 pub const GK150K_PID: u16 = 0x1000;
@@ -51,15 +53,17 @@ pub const TMICESC_PID: u16 = 0x1001;
 pub const HSV293S_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_VID, HSV293S_PID);
 pub const AKP153_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153_PID);
 pub const AKP153E_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_PID);
+pub const AKP153E_REV2_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_REV2_PID);
 pub const AKP153R_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153R_PID);
 pub const GK150K_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MADDOG_VID, GK150K_PID);
 pub const RMV01_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, RISEMODE_VID, RMV01_PID);
 pub const TMICESC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, TMICE_VID, TMICESC_PID);
 
-pub const QUERIES: [DeviceQuery; 7] = [
+pub const QUERIES: [DeviceQuery; 8] = [
     HSV293S_QUERY,
     AKP153_QUERY,
     AKP153E_QUERY,
+    AKP153E_REV2_QUERY,
     AKP153R_QUERY,
     GK150K_QUERY,
     RMV01_QUERY,
@@ -73,6 +77,7 @@ impl Kind {
             AJAZZ_VID => match pid {
                 AKP153_PID => Some(Kind::AKP153),
                 AKP153E_PID => Some(Kind::AKP153E),
+                AKP153E_REV2_PID => Some(Kind::AKP153EREV2),
                 AKP153R_PID => Some(Kind::AKP153R),
                 _ => None,
             },
@@ -102,13 +107,19 @@ impl Kind {
     }
 
     /// Returns true for devices that emitting two events per key press, instead of one
-    /// Currently none of the devices from this family support that
+    /// Currently only one of the devices from this family support that
     pub fn supports_both_states(&self) -> bool {
-        false
+        match self {
+            Self::AKP153EREV2 => true,
+            _ => false
+        }
     }
 
     pub fn is_v2(&self) -> bool {
-        false // In the future there may be "v2" devices, so lay some groundwork
+        match self {
+            Self::AKP153EREV2 => true,
+            _ => false
+        }
     }
 
     /// There is no point relying on manufacturer/device names reported by the USB stack,
@@ -117,6 +128,7 @@ impl Kind {
         match &self {
             Self::AKP153 => "Ajazz AKP153",
             Self::AKP153E => "Ajazz AKP153E",
+            Self::AKP153EREV2 => "Ajazz AKP153E Rev.2",
             Self::AKP153R => "Ajazz AKP153R",
             Self::HSV293S => "Mirabox HSV293S",
             Self::GK150K => "Mad Dog GK150K",
@@ -132,6 +144,7 @@ impl Kind {
         match &self {
             Self::AKP153 => "153",
             Self::AKP153E => "153E",
+            Self::AKP153EREV2 => "153ERev2",
             Self::AKP153R => "153R",
             Self::HSV293S => "293S",
             Self::GK150K => "GK150K",
