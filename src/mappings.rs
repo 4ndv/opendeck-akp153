@@ -19,6 +19,30 @@ pub const IMAGE_FORMAT: ImageFormat = ImageFormat {
     mirror: ImageMirroring::Both,
 };
 
+pub fn get_image_format_for_key(kind: &Kind, key: u8) -> ImageFormat {
+    let size = match kind {
+        Kind::AKP153EREV2 => {
+            // Special sizes for AKP153EREV2 device
+            if key == 5 || key == 11 || key == 17 { //View only keys have smaller visible area 
+                (82, 82)
+            } else {
+                (95, 95) // max image size for pressable keys
+            }
+        }
+        _ => {
+            // Default size for all other devices
+            (85, 85)
+        }
+    };
+
+    ImageFormat {
+        mode: ImageMode::JPEG,
+        size,
+        rotation: ImageRotation::Rot90,
+        mirror: ImageMirroring::Both,
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Kind {
     HSV293S,
