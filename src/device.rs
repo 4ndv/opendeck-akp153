@@ -5,10 +5,10 @@ use openaction::{OUTBOUND_EVENT_MANAGER, SetImageEvent};
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    DEVICE_KINDS, DEVICES, TOKENS,
+    DEVICES, TOKENS,
     inputs::opendeck_to_device,
     mappings::{
-        COL_COUNT, CandidateDevice, ENCODER_COUNT, IMAGE_FORMAT, KEY_COUNT, ROW_COUNT,
+        COL_COUNT, CandidateDevice, ENCODER_COUNT, KEY_COUNT, Kind, ROW_COUNT,
         get_image_format_for_key,
     },
 };
@@ -60,12 +60,6 @@ pub async fn device_task(candidate: CandidateDevice, token: CancellationToken) {
 
     DEVICES.write().await.insert(candidate.id.clone(), device);
 
-    // Store the device kind
-    DEVICE_KINDS
-        .write()
-        .await
-        .insert(candidate.id.clone(), candidate.kind.clone());
-
     tokio::select! {
         _ = device_events_task(&candidate) => {},
         _ = token.cancelled() => {}
@@ -101,9 +95,6 @@ pub async fn handle_error(id: &String, err: MirajazzError) -> bool {
 
     log::debug!("Removing device {} from the list", id);
     DEVICES.write().await.remove(id);
-
-    // Also remove from device kinds map
-    DEVICE_KINDS.write().await.remove(id);
 
     log::debug!("Finished clean-up for {}", id);
 
@@ -207,15 +198,14 @@ pub async fn handle_set_image(device: &Device, evt: SetImageEvent) -> Result<(),
 
             let image = load_from_memory_with_format(body.as_slice(), image::ImageFormat::Jpeg)?;
 
-            // Get the device kind and create appropriate image format
-            let image_format = if let Some(kind) = DEVICE_KINDS.read().await.get(&evt.device) {
-                get_image_format_for_key(kind, position)
-            } else {
-                IMAGE_FORMAT // Fallback to default
-            };
+            let kind = Kind::from_vid_pid(device.vid, device.pid).unwrap(); // Safe to unwrap here, because device is already filtered
 
             device
-                .set_button_image(opendeck_to_device(position), image_format, image)
+                .set_button_image(
+                    opendeck_to_device(position),
+                    get_image_format_for_key(&kind, position),
+                    image,
+                )
                 .await?;
             device.flush().await?;
         }

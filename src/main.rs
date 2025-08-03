@@ -20,10 +20,6 @@ pub static TOKENS: LazyLock<RwLock<HashMap<String, CancellationToken>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 pub static TRACKER: LazyLock<Mutex<TaskTracker>> = LazyLock::new(|| Mutex::new(TaskTracker::new()));
 
-// Add this new map for device kinds
-pub static DEVICE_KINDS: LazyLock<RwLock<HashMap<String, mappings::Kind>>> =
-    LazyLock::new(|| RwLock::new(HashMap::new()));
-
 struct GlobalEventHandler {}
 impl openaction::GlobalEventHandler for GlobalEventHandler {
     async fn plugin_ready(

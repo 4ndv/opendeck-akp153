@@ -12,38 +12,6 @@ pub const COL_COUNT: usize = 6;
 pub const KEY_COUNT: usize = ROW_COUNT * COL_COUNT;
 pub const ENCODER_COUNT: usize = 0;
 
-pub const IMAGE_FORMAT: ImageFormat = ImageFormat {
-    mode: ImageMode::JPEG,
-    size: (85, 85),
-    rotation: ImageRotation::Rot90,
-    mirror: ImageMirroring::Both,
-};
-
-pub fn get_image_format_for_key(kind: &Kind, key: u8) -> ImageFormat {
-    let size = match kind {
-        Kind::AKP153EREV2 => {
-            // Special sizes for AKP153EREV2 device
-            if key == 5 || key == 11 || key == 17 {
-                //View only keys have smaller visible area
-                (82, 82)
-            } else {
-                (95, 95) // max image size for pressable keys
-            }
-        }
-        _ => {
-            // Default size for all other devices
-            (85, 85)
-        }
-    };
-
-    ImageFormat {
-        mode: ImageMode::JPEG,
-        size,
-        rotation: ImageRotation::Rot90,
-        mirror: ImageMirroring::Both,
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum Kind {
     HSV293S,
@@ -94,6 +62,30 @@ pub const QUERIES: [DeviceQuery; 8] = [
     RMV01_QUERY,
     TMICESC_QUERY,
 ];
+
+/// Returns correct image format for device kind and key
+pub fn get_image_format_for_key(kind: &Kind, key: u8) -> ImageFormat {
+    if !kind.is_v2() {
+        return ImageFormat {
+            mode: ImageMode::JPEG,
+            size: (85, 85),
+            rotation: ImageRotation::Rot90,
+            mirror: ImageMirroring::Both,
+        };
+    }
+
+    let size = match key {
+        5 | 11 | 17 => (82, 82),
+        _ => (95, 95),
+    };
+
+    ImageFormat {
+        mode: ImageMode::JPEG,
+        size,
+        rotation: ImageRotation::Rot90,
+        mirror: ImageMirroring::Both,
+    }
+}
 
 impl Kind {
     /// Matches devices VID+PID pairs to correct kinds
