@@ -12,22 +12,16 @@ pub const COL_COUNT: usize = 6;
 pub const KEY_COUNT: usize = ROW_COUNT * COL_COUNT;
 pub const ENCODER_COUNT: usize = 0;
 
-pub const IMAGE_FORMAT: ImageFormat = ImageFormat {
-    mode: ImageMode::JPEG,
-    size: (85, 85),
-    rotation: ImageRotation::Rot90,
-    mirror: ImageMirroring::Both,
-};
-
 #[derive(Debug, Clone)]
 pub enum Kind {
     HSV293S,
     AKP153,
     AKP153E,
+    AKP153EREV2,
     AKP153R,
     GK150K,
     RMV01,
-    TMICESC
+    TMICESC,
 }
 
 pub const AJAZZ_VID: u16 = 0x0300;
@@ -40,6 +34,7 @@ pub const HSV293S_PID: u16 = 0x6670;
 
 pub const AKP153_PID: u16 = 0x6674;
 pub const AKP153E_PID: u16 = 0x1010;
+pub const AKP153E_REV2_PID: u16 = 0x3010;
 pub const AKP153R_PID: u16 = 0x1020;
 
 pub const GK150K_PID: u16 = 0x1000;
@@ -51,20 +46,46 @@ pub const TMICESC_PID: u16 = 0x1001;
 pub const HSV293S_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_VID, HSV293S_PID);
 pub const AKP153_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153_PID);
 pub const AKP153E_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_PID);
+pub const AKP153E_REV2_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_REV2_PID);
 pub const AKP153R_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153R_PID);
 pub const GK150K_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MADDOG_VID, GK150K_PID);
 pub const RMV01_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, RISEMODE_VID, RMV01_PID);
 pub const TMICESC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, TMICE_VID, TMICESC_PID);
 
-pub const QUERIES: [DeviceQuery; 7] = [
+pub const QUERIES: [DeviceQuery; 8] = [
     HSV293S_QUERY,
     AKP153_QUERY,
     AKP153E_QUERY,
+    AKP153E_REV2_QUERY,
     AKP153R_QUERY,
     GK150K_QUERY,
     RMV01_QUERY,
     TMICESC_QUERY,
 ];
+
+/// Returns correct image format for device kind and key
+pub fn get_image_format_for_key(kind: &Kind, key: u8) -> ImageFormat {
+    if !kind.is_v2() {
+        return ImageFormat {
+            mode: ImageMode::JPEG,
+            size: (85, 85),
+            rotation: ImageRotation::Rot90,
+            mirror: ImageMirroring::Both,
+        };
+    }
+
+    let size = match key {
+        5 | 11 | 17 => (82, 82),
+        _ => (95, 95),
+    };
+
+    ImageFormat {
+        mode: ImageMode::JPEG,
+        size,
+        rotation: ImageRotation::Rot90,
+        mirror: ImageMirroring::Both,
+    }
+}
 
 impl Kind {
     /// Matches devices VID+PID pairs to correct kinds
@@ -73,6 +94,7 @@ impl Kind {
             AJAZZ_VID => match pid {
                 AKP153_PID => Some(Kind::AKP153),
                 AKP153E_PID => Some(Kind::AKP153E),
+                AKP153E_REV2_PID => Some(Kind::AKP153EREV2),
                 AKP153R_PID => Some(Kind::AKP153R),
                 _ => None,
             },
@@ -96,19 +118,25 @@ impl Kind {
                 TMICESC_PID => Some(Kind::TMICESC),
                 _ => None,
             },
-			
+
             _ => None,
         }
     }
 
     /// Returns true for devices that emitting two events per key press, instead of one
-    /// Currently none of the devices from this family support that
     pub fn supports_both_states(&self) -> bool {
-        false
+        match self {
+            Self::AKP153EREV2 => true,
+            _ => false,
+        }
     }
 
+    /// Returns true if device should use "v2" protocol
     pub fn is_v2(&self) -> bool {
-        false // In the future there may be "v2" devices, so lay some groundwork
+        match self {
+            Self::AKP153EREV2 => true,
+            _ => false,
+        }
     }
 
     /// There is no point relying on manufacturer/device names reported by the USB stack,
@@ -117,6 +145,7 @@ impl Kind {
         match &self {
             Self::AKP153 => "Ajazz AKP153",
             Self::AKP153E => "Ajazz AKP153E",
+            Self::AKP153EREV2 => "Ajazz AKP153E (rev. 2)",
             Self::AKP153R => "Ajazz AKP153R",
             Self::HSV293S => "Mirabox HSV293S",
             Self::GK150K => "Mad Dog GK150K",
@@ -137,6 +166,8 @@ impl Kind {
             Self::GK150K => "GK150K",
             Self::RMV01 => "RMV01",
             Self::TMICESC => "TMICESC",
+            // This method would not be called for "v2" devices, so mark them as unreachable
+            Self::AKP153EREV2 => unreachable!(),
         }
         .to_string()
     }
