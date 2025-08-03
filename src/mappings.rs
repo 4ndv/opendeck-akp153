@@ -124,7 +124,6 @@ impl Kind {
     }
 
     /// Returns true for devices that emitting two events per key press, instead of one
-    /// Currently only one of the devices from this family support that
     pub fn supports_both_states(&self) -> bool {
         match self {
             Self::AKP153EREV2 => true,
@@ -132,6 +131,7 @@ impl Kind {
         }
     }
 
+    /// Returns true if device should use "v2" protocol
     pub fn is_v2(&self) -> bool {
         match self {
             Self::AKP153EREV2 => true,
