@@ -8,7 +8,7 @@ use openaction::OUTBOUND_EVENT_MANAGER;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    DEVICES, TOKENS, TRACKER, DEVICE_KINDS,
+    DEVICE_KINDS, DEVICES, TOKENS, TRACKER,
     device::device_task,
     mappings::{CandidateDevice, DEVICE_NAMESPACE, Kind, QUERIES},
 };

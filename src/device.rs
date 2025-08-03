@@ -5,9 +5,12 @@ use openaction::{OUTBOUND_EVENT_MANAGER, SetImageEvent};
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    DEVICES, TOKENS, DEVICE_KINDS,  // Add DEVICE_KINDS import
+    DEVICE_KINDS, DEVICES, TOKENS,
     inputs::opendeck_to_device,
-    mappings::{COL_COUNT, CandidateDevice, ENCODER_COUNT, IMAGE_FORMAT, KEY_COUNT, ROW_COUNT, get_image_format_for_key},
+    mappings::{
+        COL_COUNT, CandidateDevice, ENCODER_COUNT, IMAGE_FORMAT, KEY_COUNT, ROW_COUNT,
+        get_image_format_for_key,
+    },
 };
 
 /// Initializes a device and listens for events
@@ -56,9 +59,12 @@ pub async fn device_task(candidate: CandidateDevice, token: CancellationToken) {
     }
 
     DEVICES.write().await.insert(candidate.id.clone(), device);
-    
+
     // Store the device kind
-    DEVICE_KINDS.write().await.insert(candidate.id.clone(), candidate.kind.clone());
+    DEVICE_KINDS
+        .write()
+        .await
+        .insert(candidate.id.clone(), candidate.kind.clone());
 
     tokio::select! {
         _ = device_events_task(&candidate) => {},
@@ -95,7 +101,7 @@ pub async fn handle_error(id: &String, err: MirajazzError) -> bool {
 
     log::debug!("Removing device {} from the list", id);
     DEVICES.write().await.remove(id);
-    
+
     // Also remove from device kinds map
     DEVICE_KINDS.write().await.remove(id);
 

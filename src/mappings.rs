@@ -23,7 +23,8 @@ pub fn get_image_format_for_key(kind: &Kind, key: u8) -> ImageFormat {
     let size = match kind {
         Kind::AKP153EREV2 => {
             // Special sizes for AKP153EREV2 device
-            if key == 5 || key == 11 || key == 17 { //View only keys have smaller visible area 
+            if key == 5 || key == 11 || key == 17 {
+                //View only keys have smaller visible area
                 (82, 82)
             } else {
                 (95, 95) // max image size for pressable keys
@@ -52,7 +53,7 @@ pub enum Kind {
     AKP153R,
     GK150K,
     RMV01,
-    TMICESC
+    TMICESC,
 }
 
 pub const AJAZZ_VID: u16 = 0x0300;
@@ -125,7 +126,7 @@ impl Kind {
                 TMICESC_PID => Some(Kind::TMICESC),
                 _ => None,
             },
-			
+
             _ => None,
         }
     }
@@ -135,14 +136,14 @@ impl Kind {
     pub fn supports_both_states(&self) -> bool {
         match self {
             Self::AKP153EREV2 => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn is_v2(&self) -> bool {
         match self {
             Self::AKP153EREV2 => true,
-            _ => false
+            _ => false,
         }
     }
 
