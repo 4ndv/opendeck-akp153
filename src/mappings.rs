@@ -145,7 +145,7 @@ impl Kind {
         match &self {
             Self::AKP153 => "Ajazz AKP153",
             Self::AKP153E => "Ajazz AKP153E",
-            Self::AKP153EREV2 => "Ajazz AKP153E Rev.2",
+            Self::AKP153EREV2 => "Ajazz AKP153E (rev. 2)",
             Self::AKP153R => "Ajazz AKP153R",
             Self::HSV293S => "Mirabox HSV293S",
             Self::GK150K => "Mad Dog GK150K",
