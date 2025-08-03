@@ -169,12 +169,13 @@ impl Kind {
         match &self {
             Self::AKP153 => "153",
             Self::AKP153E => "153E",
-            Self::AKP153EREV2 => "153ERev2",
             Self::AKP153R => "153R",
             Self::HSV293S => "293S",
             Self::GK150K => "GK150K",
             Self::RMV01 => "RMV01",
             Self::TMICESC => "TMICESC",
+            // This method would not be called for "v2" devices, so mark them as unreachable
+            Self::AKP153EREV2 => unreachable!(),
         }
         .to_string()
     }
