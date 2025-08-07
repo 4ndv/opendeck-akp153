@@ -15,6 +15,7 @@ pub const ENCODER_COUNT: usize = 0;
 #[derive(Debug, Clone)]
 pub enum Kind {
     HSV293S,
+    HSV293SV3,
     AKP153,
     AKP153E,
     AKP153EREV2,
@@ -26,11 +27,13 @@ pub enum Kind {
 
 pub const AJAZZ_VID: u16 = 0x0300;
 pub const MIRABOX_VID: u16 = 0x5548;
+pub const MIRABOX_2_VID: u16 = 0x6603;
 pub const MADDOG_VID: u16 = 0x0c00;
 pub const RISEMODE_VID: u16 = 0x0a00;
 pub const TMICE_VID: u16 = 0x0500;
 
 pub const HSV293S_PID: u16 = 0x6670;
+pub const HSV293SV3_PID: u16 = 0x1014;
 
 pub const AKP153_PID: u16 = 0x6674;
 pub const AKP153E_PID: u16 = 0x1010;
@@ -44,6 +47,7 @@ pub const TMICESC_PID: u16 = 0x1001;
 
 // Map all queries to usage page 65440 and usage id 1 for now
 pub const HSV293S_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_VID, HSV293S_PID);
+pub const HSV293SV3_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_2_VID, HSV293SV3_PID);
 pub const AKP153_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153_PID);
 pub const AKP153E_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_PID);
 pub const AKP153E_REV2_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_REV2_PID);
@@ -52,8 +56,9 @@ pub const GK150K_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MADDOG_VID, GK1
 pub const RMV01_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, RISEMODE_VID, RMV01_PID);
 pub const TMICESC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, TMICE_VID, TMICESC_PID);
 
-pub const QUERIES: [DeviceQuery; 8] = [
+pub const QUERIES: [DeviceQuery; 9] = [
     HSV293S_QUERY,
+    HSV293SV3_QUERY,
     AKP153_QUERY,
     AKP153E_QUERY,
     AKP153E_REV2_QUERY,
@@ -104,6 +109,11 @@ impl Kind {
                 _ => None,
             },
 
+            MIRABOX_2_VID => match pid {
+                HSV293SV3_PID => Some(Kind::HSV293SV3),
+                _ => None,
+            },
+
             MADDOG_VID => match pid {
                 GK150K_PID => Some(Kind::GK150K),
                 _ => None,
@@ -126,6 +136,7 @@ impl Kind {
     /// Returns true for devices that emitting two events per key press, instead of one
     pub fn supports_both_states(&self) -> bool {
         match self {
+            Self::HSV293SV3 => true,
             Self::AKP153EREV2 => true,
             _ => false,
         }
@@ -134,6 +145,7 @@ impl Kind {
     /// Returns true if device should use "v2" protocol
     pub fn is_v2(&self) -> bool {
         match self {
+            Self::HSV293SV3 => true,
             Self::AKP153EREV2 => true,
             _ => false,
         }
@@ -143,11 +155,12 @@ impl Kind {
     /// so we return custom names for all the kinds of devices
     pub fn human_name(&self) -> String {
         match &self {
+            Self::HSV293S => "Mirabox HSV293S",
+            Self::HSV293SV3 => "Mirabox HSV293SV3",
             Self::AKP153 => "Ajazz AKP153",
             Self::AKP153E => "Ajazz AKP153E",
             Self::AKP153EREV2 => "Ajazz AKP153E (rev. 2)",
             Self::AKP153R => "Ajazz AKP153R",
-            Self::HSV293S => "Mirabox HSV293S",
             Self::GK150K => "Mad Dog GK150K",
             Self::RMV01 => "Risemode Vision 01",
             Self::TMICESC => "TMICE Stream Controller",
@@ -167,6 +180,7 @@ impl Kind {
             Self::RMV01 => "RMV01",
             Self::TMICESC => "TMICESC",
             // This method would not be called for "v2" devices, so mark them as unreachable
+            Self::HSV293SV3 => unreachable!(),
             Self::AKP153EREV2 => unreachable!(),
         }
         .to_string()
