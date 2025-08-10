@@ -11,6 +11,7 @@ Requires OpenDeck 2.5.0 or newer
 ## Supported devices
 
 - Mirabox HSV293S (5548:6670)
+- Mirabox HSV293SV3 (6603:1014)
 - Ajazz AKP153 (5548:6674)
 - Ajazz AKP153E (0300:1010)
 - Ajazz AKP153E (rev. 2) (0300:3010)
