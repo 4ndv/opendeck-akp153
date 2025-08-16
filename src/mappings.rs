@@ -16,6 +16,7 @@ pub const ENCODER_COUNT: usize = 0;
 pub enum Kind {
     HSV293S,
     HSV293SV3,
+    HSV293SV3_1005,
     AKP153,
     AKP153E,
     AKP153EREV2,
@@ -34,6 +35,7 @@ pub const TMICE_VID: u16 = 0x0500;
 
 pub const HSV293S_PID: u16 = 0x6670;
 pub const HSV293SV3_PID: u16 = 0x1014;
+pub const HSV293SV3_1005_PID: u16 = 0x1005;
 
 pub const AKP153_PID: u16 = 0x6674;
 pub const AKP153E_PID: u16 = 0x1010;
@@ -48,6 +50,7 @@ pub const TMICESC_PID: u16 = 0x1001;
 // Map all queries to usage page 65440 and usage id 1 for now
 pub const HSV293S_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_VID, HSV293S_PID);
 pub const HSV293SV3_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_2_VID, HSV293SV3_PID);
+pub const HSV293SV3_1005_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_2_VID, HSV293SV3_1005_PID);
 pub const AKP153_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153_PID);
 pub const AKP153E_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_PID);
 pub const AKP153E_REV2_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_REV2_PID);
@@ -56,9 +59,10 @@ pub const GK150K_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MADDOG_VID, GK1
 pub const RMV01_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, RISEMODE_VID, RMV01_PID);
 pub const TMICESC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, TMICE_VID, TMICESC_PID);
 
-pub const QUERIES: [DeviceQuery; 9] = [
+pub const QUERIES: [DeviceQuery; 10] = [
     HSV293S_QUERY,
     HSV293SV3_QUERY,
+    HSV293SV3_1005_QUERY,
     AKP153_QUERY,
     AKP153E_QUERY,
     AKP153E_REV2_QUERY,
@@ -111,6 +115,7 @@ impl Kind {
 
             MIRABOX_2_VID => match pid {
                 HSV293SV3_PID => Some(Kind::HSV293SV3),
+                HSV293SV3_1005_PID => Some(Kind::HSV293SV3_1005),
                 _ => None,
             },
 
@@ -137,6 +142,7 @@ impl Kind {
     pub fn supports_both_states(&self) -> bool {
         match self {
             Self::HSV293SV3 => true,
+            Self::HSV293SV3_1005 => true, 
             Self::AKP153EREV2 => true,
             _ => false,
         }
@@ -146,6 +152,7 @@ impl Kind {
     pub fn is_v2(&self) -> bool {
         match self {
             Self::HSV293SV3 => true,
+            Self::HSV293SV3_1005 => true, 
             Self::AKP153EREV2 => true,
             _ => false,
         }
@@ -157,6 +164,7 @@ impl Kind {
         match &self {
             Self::HSV293S => "Mirabox HSV293S",
             Self::HSV293SV3 => "Mirabox HSV293SV3",
+            Self::HSV293SV3_1005 => "Mirabox HSV293SV3",
             Self::AKP153 => "Ajazz AKP153",
             Self::AKP153E => "Ajazz AKP153E",
             Self::AKP153EREV2 => "Ajazz AKP153E (rev. 2)",
@@ -181,6 +189,7 @@ impl Kind {
             Self::TMICESC => "TMICESC",
             // This method would not be called for "v2" devices, so mark them as unreachable
             Self::HSV293SV3 => unreachable!(),
+            Self::HSV293SV3_1005 => unreachable!(),
             Self::AKP153EREV2 => unreachable!(),
         }
         .to_string()
