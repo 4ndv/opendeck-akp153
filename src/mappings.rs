@@ -141,7 +141,9 @@ impl Kind {
     /// Returns true for devices that emitting two events per key press, instead of one
     pub fn supports_both_states(&self) -> bool {
         match self {
-            Self::HSV293SV3 | Self::HSV293SV3_1005 | Self::AKP153EREV2 => true,
+            Self::HSV293SV3 => true,
+            Self::HSV293SV3_1005 => true, 
+            Self::AKP153EREV2 => true,
             _ => false,
         }
     }
@@ -149,7 +151,9 @@ impl Kind {
     /// Returns true if device should use "v2" protocol
     pub fn is_v2(&self) -> bool {
         match self {
-            Self::HSV293SV3 | Self::HSV293SV3_1005 | Self::AKP153EREV2 => true,
+            Self::HSV293SV3 => true,
+            Self::HSV293SV3_1005 => true, 
+            Self::AKP153EREV2 => true,
             _ => false,
         }
     }
@@ -159,7 +163,8 @@ impl Kind {
     pub fn human_name(&self) -> String {
         match &self {
             Self::HSV293S => "Mirabox HSV293S",
-            Self::HSV293SV3 | Self::HSV293SV3_1005 => "Mirabox HSV293SV3",
+            Self::HSV293SV3 => "Mirabox HSV293SV3",
+            Self::HSV293SV3_1005 => "Mirabox HSV293SV3",
             Self::AKP153 => "Ajazz AKP153",
             Self::AKP153E => "Ajazz AKP153E",
             Self::AKP153EREV2 => "Ajazz AKP153E (rev. 2)",
@@ -183,7 +188,9 @@ impl Kind {
             Self::RMV01 => "RMV01",
             Self::TMICESC => "TMICESC",
             // This method would not be called for "v2" devices, so mark them as unreachable
-            Self::HSV293SV3 | Self::HSV293SV3_1005 | Self::AKP153EREV2 => unreachable!(),
+            Self::HSV293SV3 => unreachable!(),
+            Self::HSV293SV3_1005 => unreachable!(),
+            Self::AKP153EREV2 => unreachable!(),
         }
         .to_string()
     }
