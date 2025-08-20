@@ -1,8 +1,8 @@
 ![Plugin Icon](assets/icon.png)
 
-# OpenDeck Ajazz AKP153 / Mirabox HSV293 Plugin
+# OpenDeck Ajazz AKP153 / Mirabox HSV293S Plugin
 
-An unofficial plugin for Mirabox HSV293-family devices
+An unofficial plugin for Mirabox HSV293S-family devices
 
 ## OpenDeck version
 
