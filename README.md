@@ -16,6 +16,7 @@ Requires OpenDeck 2.5.0 or newer
 - Ajazz AKP153E (0300:1010)
 - Ajazz AKP153E (rev. 2) (0300:3010)
 - Ajazz AKP153R (0300:1020)
+- Mars Gaming MSD-ONE (0b00:1000)
 - Maddog GK150K (0c00:1000)
 - Risemode Vision 01 (0a00:1001)
 - TMICE Stream Controller (0500:1001)
