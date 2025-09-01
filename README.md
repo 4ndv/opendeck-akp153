@@ -37,6 +37,7 @@ Requires OpenDeck 2.5.0 or newer
 ## Known issues
 
 - All the "old" devices come with the same serial number. You cannot use two of the same devices at the same time (for example a pair of 153R-s), but you can use two different devices at the same time (for example a 153R and a 153E)
+- Some devices might register ghost touches, prefer to use keyup instead of keydown (keyup is filtered and only executed if a keydown was registered before)
 
 ## Building
 

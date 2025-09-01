@@ -3,6 +3,11 @@ use image::load_from_memory_with_format;
 use mirajazz::{device::Device, error::MirajazzError, state::DeviceStateUpdate};
 use openaction::{OUTBOUND_EVENT_MANAGER, SetImageEvent};
 use tokio_util::sync::CancellationToken;
+use std::collections::{HashMap, VecDeque};
+use std::time::{Duration, Instant};
+
+const KEY_PRESS_HISTORY_SIZE: usize = 10; // keep max 10 buttondown events in memory
+const KEY_PRESS_HISTORY_TIMEOUT: u64 = 5;  // timeout buttondown event after 5 seconds
 
 use crate::{
     DEVICES, TOKENS,
@@ -132,6 +137,9 @@ async fn device_events_task(candidate: &CandidateDevice) -> Result<(), MirajazzE
     };
     drop(devices_lock);
 
+    let mut key_press_history: HashMap<u8, VecDeque<Instant>> = HashMap::new();
+    let key_press_history_timeout = Duration::from_secs(KEY_PRESS_HISTORY_TIMEOUT);
+
     log::info!("Connected to {} for incoming events", candidate.id);
 
     log::info!("Reader is ready for {}", candidate.id);
@@ -157,8 +165,45 @@ async fn device_events_task(candidate: &CandidateDevice) -> Result<(), MirajazzE
 
             if let Some(outbound) = OUTBOUND_EVENT_MANAGER.lock().await.as_mut() {
                 match update {
-                    DeviceStateUpdate::ButtonDown(key) => outbound.key_down(id, key).await.unwrap(),
-                    DeviceStateUpdate::ButtonUp(key) => outbound.key_up(id, key).await.unwrap(),
+                    DeviceStateUpdate::ButtonDown(key) => {
+                        // keep track of button down events
+                        let entry = key_press_history.entry(key).or_default();
+                        entry.push_back(Instant::now());
+                        while entry.len() > KEY_PRESS_HISTORY_SIZE {
+                            entry.pop_front();
+                        }
+
+                        outbound.key_down(id, key).await.unwrap();
+                    }
+                    DeviceStateUpdate::ButtonUp(key) => {
+                        // check if there was a matching buttodown event, if not ignore buttonup event
+                        let mut has_matching_button_down_event = false;
+                        if let Some(entry) = key_press_history.get_mut(&key) {
+                            let now = Instant::now();
+                            while let Some(&front) = entry.front() {
+                                if now.duration_since(front) > key_press_history_timeout {
+                                    entry.pop_front();
+                                } else {
+                                    break;
+                                }
+                            }
+
+                            if !entry.is_empty() {
+                                has_matching_button_down_event = true;
+                                entry.pop_front();
+                            }
+                        }
+
+                        if has_matching_button_down_event {
+                            outbound.key_up(id, key).await.unwrap();
+                        } else {
+                            log::debug!(
+                                "Ignored ButtonUp for {} since there was no ButtonDown in the last {} seconds",
+                                key,
+                                KEY_PRESS_HISTORY_TIMEOUT
+                            );
+                        }
+                    }
                     DeviceStateUpdate::EncoderDown(encoder) => {
                         outbound.encoder_down(id, encoder).await.unwrap();
                     }
