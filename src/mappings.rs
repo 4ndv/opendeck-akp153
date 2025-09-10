@@ -81,7 +81,7 @@ pub const QUERIES: [DeviceQuery; 11] = [
 
 /// Returns correct image format for device kind and key
 pub fn get_image_format_for_key(kind: &Kind, key: u8) -> ImageFormat {
-    if !kind.is_v2() {
+    if kind.protocol_version() == 1 {
         return ImageFormat {
             mode: ImageMode::JPEG,
             size: (85, 85),
@@ -160,13 +160,13 @@ impl Kind {
         }
     }
 
-    /// Returns true if device should use "v2" protocol
-    pub fn is_v2(&self) -> bool {
+    /// Returns protocol version for device
+    pub fn protocol_version(&self) -> usize {
         match self {
-            Self::HSV293SV3 => true,
-            Self::HSV293SV3_1005 => true,
-            Self::AKP153EREV2 => true,
-            _ => false,
+            Self::HSV293SV3 => 2,
+            Self::HSV293SV3_1005 => 2,
+            Self::AKP153EREV2 => 2,
+            _ => 1,
         }
     }
 

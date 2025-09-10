@@ -16,13 +16,13 @@ use crate::{
 fn get_device_id(dev: &HidDeviceInfo) -> Option<String> {
     let kind = Kind::from_vid_pid(dev.vendor_id, dev.product_id)?;
 
-    match kind.is_v2() {
-        true => Some(format!(
+    match kind.protocol_version() {
+        2 => Some(format!(
             "{}-{}",
             DEVICE_NAMESPACE,
             dev.serial_number.clone()?,
         )),
-        false => {
+        1 => {
             // All the "v1" devices share the same serial. Hardcode it because Windows returns invalid serial for them
             // Also suffix v1 devices with the
             Some(format!(
@@ -31,6 +31,7 @@ fn get_device_id(dev: &HidDeviceInfo) -> Option<String> {
                 kind.id_suffix()
             ))
         }
+        _ => unreachable!(),
     }
 }
 
