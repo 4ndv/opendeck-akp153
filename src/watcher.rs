@@ -17,7 +17,7 @@ fn get_device_id(dev: &HidDeviceInfo) -> Option<String> {
     let kind = Kind::from_vid_pid(dev.vendor_id, dev.product_id)?;
 
     match kind.protocol_version() {
-        2 => Some(format!(
+        2 | 3 => Some(format!(
             "{}-{}",
             DEVICE_NAMESPACE,
             dev.serial_number.clone()?,

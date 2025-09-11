@@ -150,22 +150,12 @@ impl Kind {
         }
     }
 
-    /// Returns true for devices that emitting two events per key press, instead of one
-    pub fn supports_both_states(&self) -> bool {
-        match self {
-            Self::HSV293SV3 => true,
-            Self::HSV293SV3_1005 => true,
-            Self::AKP153EREV2 => true,
-            _ => false,
-        }
-    }
-
     /// Returns protocol version for device
     pub fn protocol_version(&self) -> usize {
         match self {
-            Self::HSV293SV3 => 2,
-            Self::HSV293SV3_1005 => 2,
-            Self::AKP153EREV2 => 2,
+            Self::HSV293SV3 => 3,
+            Self::HSV293SV3_1005 => 3,
+            Self::AKP153EREV2 => 3,
             _ => 1,
         }
     }
@@ -201,7 +191,7 @@ impl Kind {
             Self::GK150K => "GK150K",
             Self::RMV01 => "RMV01",
             Self::TMICESC => "TMICESC",
-            // This method would not be called for "v2" devices, so mark them as unreachable
+            // This method would not be called for "v2"/"v3" devices, so mark them as unreachable
             Self::HSV293SV3 => unreachable!(),
             Self::HSV293SV3_1005 => unreachable!(),
             Self::AKP153EREV2 => unreachable!(),

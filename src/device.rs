@@ -105,7 +105,6 @@ pub async fn connect(candidate: &CandidateDevice) -> Result<Device, MirajazzErro
     let result = Device::connect(
         &candidate.dev,
         candidate.kind.protocol_version(),
-        candidate.kind.supports_both_states(),
         KEY_COUNT,
         ENCODER_COUNT,
     )
