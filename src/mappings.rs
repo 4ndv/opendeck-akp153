@@ -56,7 +56,7 @@ pub const HSV293S_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_VID, H
 pub const HSV293SV3_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_2_VID, HSV293SV3_PID);
 pub const HSV293SV3_1005_QUERY: DeviceQuery =
     DeviceQuery::new(65440, 1, MIRABOX_2_VID, HSV293SV3_1005_PID);
-pub const AKP153_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153_PID);
+pub const AKP153_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_VID, AKP153_PID);
 pub const AKP153E_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_PID);
 pub const AKP153E_REV2_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_REV2_PID);
 pub const AKP153R_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153R_PID);
