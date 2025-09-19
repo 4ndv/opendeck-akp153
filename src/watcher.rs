@@ -128,7 +128,7 @@ pub async fn watcher_task(token: CancellationToken) -> Result<(), MirajazzError>
                         outbound.deregister_device(id.clone()).await.ok();
                     }
 
-                    log::debug!("Disconnected device {}", id);
+                    log::info!("Disconnected device {}", id);
                 }
             }
         } else {

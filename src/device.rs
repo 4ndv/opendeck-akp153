@@ -43,7 +43,7 @@ pub async fn device_task(candidate: CandidateDevice, token: CancellationToken) {
         }
     };
 
-    log::debug!("Registering device {}", candidate.id);
+    log::info!("Registering device {}", candidate.id);
     if let Some(outbound) = OUTBOUND_EVENT_MANAGER.lock().await.as_mut() {
         outbound
             .register_device(
@@ -83,20 +83,20 @@ pub async fn handle_error(id: &String, err: MirajazzError) -> bool {
         return true;
     }
 
-    log::debug!("Deregistering device {}", id);
+    log::info!("Deregistering device {}", id);
     if let Some(outbound) = OUTBOUND_EVENT_MANAGER.lock().await.as_mut() {
         outbound.deregister_device(id.clone()).await.unwrap();
     }
 
-    log::debug!("Cancelling tasks for device {}", id);
+    log::info!("Cancelling tasks for device {}", id);
     if let Some(token) = TOKENS.read().await.get(id) {
         token.cancel();
     }
 
-    log::debug!("Removing device {} from the list", id);
+    log::info!("Removing device {} from the list", id);
     DEVICES.write().await.remove(id);
 
-    log::debug!("Finished clean-up for {}", id);
+    log::info!("Finished clean-up for {}", id);
 
     false
 }
