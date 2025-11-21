@@ -24,6 +24,7 @@ pub enum Kind {
     MSDONE,
     GK150K,
     RMV01,
+    SFSTC,
     TMICESC,
 }
 
@@ -33,6 +34,7 @@ pub const MIRABOX_2_VID: u16 = 0x6603;
 pub const MG_VID: u16 = 0x0b00;
 pub const MADDOG_VID: u16 = 0x0c00;
 pub const RISEMODE_VID: u16 = 0x0a00;
+pub const SF_STC_VID: u16 = 0x1500;
 pub const TMICE_VID: u16 = 0x0500;
 
 pub const HSV293S_PID: u16 = 0x6670;
@@ -49,13 +51,13 @@ pub const MSD_ONE_PID: u16 = 0x1000;
 pub const GK150K_PID: u16 = 0x1000;
 
 pub const RMV01_PID: u16 = 0x1001;
+pub const SF_STC_PID: u16 = 0x3003;
 pub const TMICESC_PID: u16 = 0x1001;
 
 // Map all queries to usage page 65440 and usage id 1 for now
 pub const HSV293S_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_VID, HSV293S_PID);
 pub const HSV293SV3_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_2_VID, HSV293SV3_PID);
-pub const HSV293SV3_1005_QUERY: DeviceQuery =
-    DeviceQuery::new(65440, 1, MIRABOX_2_VID, HSV293SV3_1005_PID);
+pub const HSV293SV3_1005_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_2_VID, HSV293SV3_1005_PID);
 pub const AKP153_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_VID, AKP153_PID);
 pub const AKP153E_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_PID);
 pub const AKP153E_REV2_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_REV2_PID);
@@ -63,9 +65,10 @@ pub const AKP153R_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP
 pub const MSD_ONE_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MG_VID, MSD_ONE_PID);
 pub const GK150K_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MADDOG_VID, GK150K_PID);
 pub const RMV01_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, RISEMODE_VID, RMV01_PID);
+pub const SF_STC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, SF_STC_VID, SF_STC_PID);
 pub const TMICESC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, TMICE_VID, TMICESC_PID);
 
-pub const QUERIES: [DeviceQuery; 11] = [
+pub const QUERIES: [DeviceQuery; 12] = [
     HSV293S_QUERY,
     HSV293SV3_QUERY,
     HSV293SV3_1005_QUERY,
@@ -76,6 +79,7 @@ pub const QUERIES: [DeviceQuery; 11] = [
     MSD_ONE_QUERY,
     GK150K_QUERY,
     RMV01_QUERY,
+    SF_STC_QUERY,
     TMICESC_QUERY,
 ];
 
@@ -141,6 +145,11 @@ impl Kind {
                 _ => None,
             },
 
+            SF_STC_VID => match pid {
+                SF_STC_PID => Some(Kind::SFSTC),
+                _ => None,
+            },
+
             TMICE_VID => match pid {
                 TMICESC_PID => Some(Kind::TMICESC),
                 _ => None,
@@ -156,6 +165,7 @@ impl Kind {
             Self::HSV293SV3 => 3,
             Self::HSV293SV3_1005 => 3,
             Self::AKP153EREV2 => 3,
+            Self::SFSTC => 3,
             _ => 1,
         }
     }
@@ -174,6 +184,7 @@ impl Kind {
             Self::MSDONE => "Mars Gaming MSD-ONE",
             Self::GK150K => "Mad Dog GK150K",
             Self::RMV01 => "Risemode Vision 01",
+            Self::SFSTC => "Soomfon Stream Controller",
             Self::TMICESC => "TMICE Stream Controller",
         }
         .to_string()
@@ -195,6 +206,7 @@ impl Kind {
             Self::HSV293SV3 => unreachable!(),
             Self::HSV293SV3_1005 => unreachable!(),
             Self::AKP153EREV2 => unreachable!(),
+            Self::SFSTC => unreachable!(),
         }
         .to_string()
     }
