@@ -22,6 +22,7 @@ Requires OpenDeck 2.5.0 or newer
 - TMICE Stream Controller (0500:1001)
 - Soomfon Stream Controller XF-CN001 (1500:3003)
 - Soomfon Studio Control Deck (5548:6670) (would be displayed as Mirabox HSV293S)
+- Womier D15 (0600:1000)
 
 ## Platform support
 
