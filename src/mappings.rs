@@ -19,8 +19,9 @@ pub enum Kind {
     HSV293SV3_1005,
     AKP153,
     AKP153E,
-    AKP153EREV2,
     AKP153R,
+    AKP153EREV2,
+    AKP153RREV2,
     MSDONE,
     GK150K,
     RMV01,
@@ -45,8 +46,9 @@ pub const HSV293SV3_1005_PID: u16 = 0x1005;
 
 pub const AKP153_PID: u16 = 0x6674;
 pub const AKP153E_PID: u16 = 0x1010;
-pub const AKP153E_REV2_PID: u16 = 0x3010;
 pub const AKP153R_PID: u16 = 0x1020;
+pub const AKP153E_REV2_PID: u16 = 0x3010;
+pub const AKP153R_REV2_PID: u16 = 0x3011;
 
 pub const MSD_ONE_PID: u16 = 0x1000;
 
@@ -65,8 +67,9 @@ pub const HSV293SV3_1005_QUERY: DeviceQuery =
     DeviceQuery::new(65440, 1, MIRABOX_2_VID, HSV293SV3_1005_PID);
 pub const AKP153_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_VID, AKP153_PID);
 pub const AKP153E_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_PID);
-pub const AKP153E_REV2_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_REV2_PID);
 pub const AKP153R_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153R_PID);
+pub const AKP153E_REV2_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_REV2_PID);
+pub const AKP153R_REV2_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153R_REV2_PID);
 pub const MSD_ONE_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MG_VID, MSD_ONE_PID);
 pub const GK150K_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MADDOG_VID, GK150K_PID);
 pub const RMV01_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, RISEMODE_VID, RMV01_PID);
@@ -74,14 +77,15 @@ pub const SF_STC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, SF_STC_VID, SF_
 pub const TMICESC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, TMICE_VID, TMICESC_PID);
 pub const D15_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, WOMIER_VID, D15_PID);
 
-pub const QUERIES: [DeviceQuery; 13] = [
+pub const QUERIES: [DeviceQuery; 14] = [
     HSV293S_QUERY,
     HSV293SV3_QUERY,
     HSV293SV3_1005_QUERY,
     AKP153_QUERY,
     AKP153E_QUERY,
-    AKP153E_REV2_QUERY,
     AKP153R_QUERY,
+    AKP153E_REV2_QUERY,
+    AKP153R_REV2_QUERY,
     MSD_ONE_QUERY,
     GK150K_QUERY,
     RMV01_QUERY,
@@ -120,8 +124,9 @@ impl Kind {
         match vid {
             AJAZZ_VID => match pid {
                 AKP153E_PID => Some(Kind::AKP153E),
-                AKP153E_REV2_PID => Some(Kind::AKP153EREV2),
                 AKP153R_PID => Some(Kind::AKP153R),
+                AKP153E_REV2_PID => Some(Kind::AKP153EREV2),
+                AKP153R_REV2_PID => Some(Kind::AKP153RREV2),
                 _ => None,
             },
 
@@ -176,7 +181,7 @@ impl Kind {
         match self {
             Self::HSV293SV3 => 3,
             Self::HSV293SV3_1005 => 3,
-            Self::AKP153EREV2 => 3,
+            Self::AKP153EREV2 | Self::AKP153RREV2 => 3,
             Self::SFSTC => 3,
             _ => 1,
         }
@@ -191,8 +196,9 @@ impl Kind {
             Self::HSV293SV3_1005 => "Mirabox HSV293SV3",
             Self::AKP153 => "Ajazz AKP153",
             Self::AKP153E => "Ajazz AKP153E",
-            Self::AKP153EREV2 => "Ajazz AKP153E (rev. 2)",
             Self::AKP153R => "Ajazz AKP153R",
+            Self::AKP153EREV2 => "Ajazz AKP153E (rev. 2)",
+            Self::AKP153RREV2 => "Ajazz AKP153R (rev. 2)",
             Self::MSDONE => "Mars Gaming MSD-ONE",
             Self::GK150K => "Mad Dog GK150K",
             Self::RMV01 => "Risemode Vision 01",
@@ -219,7 +225,7 @@ impl Kind {
             // This method would not be called for "v2"/"v3" devices, so mark them as unreachable
             Self::HSV293SV3 => unreachable!(),
             Self::HSV293SV3_1005 => unreachable!(),
-            Self::AKP153EREV2 => unreachable!(),
+            Self::AKP153EREV2 | Self::AKP153RREV2 => unreachable!(),
             Self::SFSTC => unreachable!(),
         }
         .to_string()
