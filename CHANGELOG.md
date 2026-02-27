@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.5] - 2026-02-27
+
+### 🚀 Features
+
+- *(device)* Add support for Womier D15 (#32) (#33)
+- *(device)* Add support for Ajazz AKP153R (rev. 2) (#35)
+
 ## [0.9.4] - 2025-11-23
 
 ### 🚀 Features
