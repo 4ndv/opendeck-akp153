@@ -53,14 +53,6 @@ You'll need:
 - Docker
 - [just](https://just.systems)
 
-### Preparing environment
-
-```sh
-$ just prepare
-```
-
-This will build docker image for macOS crosscompilation
-
 ### Building a release package
 
 ```sh
