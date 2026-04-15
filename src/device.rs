@@ -2,16 +2,16 @@ use data_url::DataUrl;
 use image::load_from_memory_with_format;
 use mirajazz::{device::Device, error::MirajazzError, state::DeviceStateUpdate};
 use openaction::{OUTBOUND_EVENT_MANAGER, SetImageEvent};
+use std::{sync::Arc, time::Duration};
+use tokio::time;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
     DEVICES, TOKENS,
-    inputs::opendeck_to_device,
-    mappings::{
-        COL_COUNT, CandidateDevice, ENCODER_COUNT, KEY_COUNT, Kind, ROW_COUNT,
-        get_image_format_for_key,
-    },
+    mappings::{CandidateDevice, ENCODER_COUNT, Kind},
 };
+
+const KEEP_ALIVE_INTERVAL: Duration = Duration::from_secs(10);
 
 /// Initializes a device and listens for events
 pub async fn device_task(candidate: CandidateDevice, token: CancellationToken) {
@@ -49,8 +49,8 @@ pub async fn device_task(candidate: CandidateDevice, token: CancellationToken) {
             .register_device(
                 candidate.id.clone(),
                 candidate.kind.human_name(),
-                ROW_COUNT as u8,
-                COL_COUNT as u8,
+                candidate.kind.row_count() as u8,
+                candidate.kind.col_count() as u8,
                 ENCODER_COUNT as u8,
                 0,
             )
@@ -58,10 +58,15 @@ pub async fn device_task(candidate: CandidateDevice, token: CancellationToken) {
             .unwrap();
     }
 
-    DEVICES.write().await.insert(candidate.id.clone(), device);
+    let device = Arc::new(device);
+
+    DEVICES.write().await.insert(candidate.id.clone(), device.clone());
+
+    let keep_alive_task = keep_alive_task(candidate.id.clone(), token.clone());
 
     tokio::select! {
         _ = device_events_task(&candidate) => {},
+        _ = keep_alive_task => {},
         _ = token.cancelled() => {}
     };
 
@@ -72,6 +77,33 @@ pub async fn device_task(candidate: CandidateDevice, token: CancellationToken) {
     }
 
     log::info!("Device task finished for {:?}", candidate);
+}
+
+async fn keep_alive_task(id: String, token: CancellationToken) {
+    let mut interval = time::interval(KEEP_ALIVE_INTERVAL);
+    interval.set_missed_tick_behavior(time::MissedTickBehavior::Skip);
+
+    loop {
+        tokio::select! {
+            _ = token.cancelled() => break,
+            _ = interval.tick() => {
+                let device = DEVICES.read().await.get(&id).cloned();
+
+                if let Some(device) = device {
+                    if let Err(err) = device.keep_alive().await {
+                        log::error!("Keep-alive failed for {}: {}", id, err);
+                        if !handle_error(&id, err).await {
+                            break;
+                        }
+                    } else {
+                        log::debug!("Sent keep-alive to {}", id);
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+    }
 }
 
 /// Handles errors, returning true if should continue, returning false if an error is fatal
@@ -105,7 +137,7 @@ pub async fn connect(candidate: &CandidateDevice) -> Result<Device, MirajazzErro
     let result = Device::connect(
         &candidate.dev,
         candidate.kind.protocol_version(),
-        KEY_COUNT,
+        candidate.kind.key_count(),
         ENCODER_COUNT,
     )
     .await;
@@ -126,7 +158,7 @@ async fn device_events_task(candidate: &CandidateDevice) -> Result<(), MirajazzE
 
     let devices_lock = DEVICES.read().await;
     let reader = match devices_lock.get(&candidate.id) {
-        Some(device) => device.get_reader(crate::inputs::process_input),
+        Some(device) => device.get_reader(candidate.kind.input_processor()),
         None => return Ok(()),
     };
     drop(devices_lock);
@@ -201,16 +233,17 @@ pub async fn handle_set_image(device: &Device, evt: SetImageEvent) -> Result<(),
 
             device
                 .set_button_image(
-                    opendeck_to_device(position),
-                    get_image_format_for_key(&kind, position),
+                    kind.opendeck_to_device_key(position),
+                    kind.image_format_for_key(position),
                     image,
                 )
                 .await?;
             device.flush().await?;
         }
         (Some(position), None) => {
+            let kind = Kind::from_vid_pid(device.vid, device.pid).unwrap();
             device
-                .clear_button_image(opendeck_to_device(position))
+                .clear_button_image(kind.opendeck_to_device_key(position))
                 .await?;
             device.flush().await?;
         }

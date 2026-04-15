@@ -1,7 +1,7 @@
 use device::{handle_error, handle_set_image};
 use mirajazz::device::Device;
 use openaction::*;
-use std::{collections::HashMap, process::exit, sync::LazyLock};
+use std::{collections::HashMap, process::exit, sync::{Arc, LazyLock}};
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use watcher::watcher_task;
@@ -14,7 +14,7 @@ mod inputs;
 mod mappings;
 mod watcher;
 
-pub static DEVICES: LazyLock<RwLock<HashMap<String, Device>>> =
+pub static DEVICES: LazyLock<RwLock<HashMap<String, Arc<Device>>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 pub static TOKENS: LazyLock<RwLock<HashMap<String, CancellationToken>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));

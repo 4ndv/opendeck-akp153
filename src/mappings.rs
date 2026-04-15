@@ -1,7 +1,10 @@
 use mirajazz::{
     device::DeviceQuery,
-    types::{HidDeviceInfo, ImageFormat, ImageMirroring, ImageMode, ImageRotation},
+    error::MirajazzError,
+    types::{DeviceInput, HidDeviceInfo, ImageFormat, ImageMirroring, ImageMode, ImageRotation},
 };
+
+use crate::inputs::process_input_with_mapping;
 
 // 153 in hex is 99
 // Must be unique between all the plugins, 2 characters long and match `DeviceNamespace` field in `manifest.json`
@@ -11,12 +14,43 @@ pub const ROW_COUNT: usize = 3;
 pub const COL_COUNT: usize = 6;
 pub const KEY_COUNT: usize = ROW_COUNT * COL_COUNT;
 pub const ENCODER_COUNT: usize = 0;
+pub const ROW_COUNT_293V3: usize = 3;
+pub const COL_COUNT_293V3: usize = 5;
+pub const KEY_COUNT_293V3: usize = ROW_COUNT_293V3 * COL_COUNT_293V3;
+pub const MATRIX_3X6_DEVICE_TO_OPENDECK: [usize; KEY_COUNT] =
+    [4, 10, 16, 3, 9, 15, 2, 8, 14, 1, 7, 13, 0, 6, 12, 5, 11, 17];
+pub const MATRIX_3X6_OPENDECK_TO_DEVICE: [u8; KEY_COUNT] =
+    [12, 9, 6, 3, 0, 15, 13, 10, 7, 4, 1, 16, 14, 11, 8, 5, 2, 17];
+pub const HSV293V3_OPENDECK_TO_DEVICE: [u8; KEY_COUNT_293V3] =
+    [10, 11, 12, 13, 14, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4];
+
+fn process_input_matrix_3x6(input: u8, state: u8) -> Result<DeviceInput, MirajazzError> {
+    process_input_with_mapping(
+        KEY_COUNT,
+        |key| {
+            let key = key - 1;
+
+            if key < MATRIX_3X6_DEVICE_TO_OPENDECK.len() {
+                MATRIX_3X6_DEVICE_TO_OPENDECK[key]
+            } else {
+                key
+            }
+        },
+        input,
+        state,
+    )
+}
+
+fn process_input_hsv293v3(input: u8, state: u8) -> Result<DeviceInput, MirajazzError> {
+    process_input_with_mapping(KEY_COUNT_293V3, |key| key.saturating_sub(1), input, state)
+}
 
 #[derive(Debug, Clone)]
 pub enum Kind {
     HSV293S,
     HSV293SV3,
     HSV293SV3_1005,
+    HSV293V3_1006,
     AKP153,
     AKP153E,
     AKP153R,
@@ -43,6 +77,7 @@ pub const WOMIER_VID: u16 = 0x0600;
 pub const HSV293S_PID: u16 = 0x6670;
 pub const HSV293SV3_PID: u16 = 0x1014;
 pub const HSV293SV3_1005_PID: u16 = 0x1005;
+pub const HSV293V3_1006_PID: u16 = 0x1006;
 
 pub const AKP153_PID: u16 = 0x6674;
 pub const AKP153E_PID: u16 = 0x1010;
@@ -65,6 +100,8 @@ pub const HSV293S_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_VID, H
 pub const HSV293SV3_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_2_VID, HSV293SV3_PID);
 pub const HSV293SV3_1005_QUERY: DeviceQuery =
     DeviceQuery::new(65440, 1, MIRABOX_2_VID, HSV293SV3_1005_PID);
+pub const HSV293V3_1006_QUERY: DeviceQuery =
+    DeviceQuery::new(65440, 1, MIRABOX_2_VID, HSV293V3_1006_PID);
 pub const AKP153_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_VID, AKP153_PID);
 pub const AKP153E_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_PID);
 pub const AKP153R_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153R_PID);
@@ -77,10 +114,11 @@ pub const SF_STC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, SF_STC_VID, SF_
 pub const TMICESC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, TMICE_VID, TMICESC_PID);
 pub const D15_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, WOMIER_VID, D15_PID);
 
-pub const QUERIES: [DeviceQuery; 14] = [
+pub const QUERIES: [DeviceQuery; 15] = [
     HSV293S_QUERY,
     HSV293SV3_QUERY,
     HSV293SV3_1005_QUERY,
+    HSV293V3_1006_QUERY,
     AKP153_QUERY,
     AKP153E_QUERY,
     AKP153R_QUERY,
@@ -93,30 +131,6 @@ pub const QUERIES: [DeviceQuery; 14] = [
     TMICESC_QUERY,
     D15_QUERY,
 ];
-
-/// Returns correct image format for device kind and key
-pub fn get_image_format_for_key(kind: &Kind, key: u8) -> ImageFormat {
-    if kind.protocol_version() == 1 {
-        return ImageFormat {
-            mode: ImageMode::JPEG,
-            size: (85, 85),
-            rotation: ImageRotation::Rot90,
-            mirror: ImageMirroring::Both,
-        };
-    }
-
-    let size = match key {
-        5 | 11 | 17 => (82, 82),
-        _ => (95, 95),
-    };
-
-    ImageFormat {
-        mode: ImageMode::JPEG,
-        size,
-        rotation: ImageRotation::Rot90,
-        mirror: ImageMirroring::Both,
-    }
-}
 
 impl Kind {
     /// Matches devices VID+PID pairs to correct kinds
@@ -139,6 +153,7 @@ impl Kind {
             MIRABOX_2_VID => match pid {
                 HSV293SV3_PID => Some(Kind::HSV293SV3),
                 HSV293SV3_1005_PID => Some(Kind::HSV293SV3_1005),
+                HSV293V3_1006_PID => Some(Kind::HSV293V3_1006),
                 _ => None,
             },
 
@@ -181,9 +196,77 @@ impl Kind {
         match self {
             Self::HSV293SV3 => 3,
             Self::HSV293SV3_1005 => 3,
+            Self::HSV293V3_1006 => 3,
             Self::AKP153EREV2 | Self::AKP153RREV2 => 3,
             Self::SFSTC => 3,
             _ => 1,
+        }
+    }
+
+    pub fn row_count(&self) -> usize {
+        match self {
+            Self::HSV293V3_1006 => ROW_COUNT_293V3,
+            _ => ROW_COUNT,
+        }
+    }
+
+    pub fn col_count(&self) -> usize {
+        match self {
+            Self::HSV293V3_1006 => COL_COUNT_293V3,
+            _ => COL_COUNT,
+        }
+    }
+
+    pub fn key_count(&self) -> usize {
+        self.row_count() * self.col_count()
+    }
+
+    pub fn image_format_for_key(&self, key: u8) -> ImageFormat {
+        if matches!(self, Self::HSV293V3_1006) {
+            return ImageFormat {
+                mode: ImageMode::JPEG,
+                size: (112, 112),
+                rotation: ImageRotation::Rot180,
+                mirror: ImageMirroring::None,
+            };
+        }
+
+        if self.protocol_version() == 1 {
+            return ImageFormat {
+                mode: ImageMode::JPEG,
+                size: (85, 85),
+                rotation: ImageRotation::Rot90,
+                mirror: ImageMirroring::Both,
+            };
+        }
+
+        let size = match key {
+            5 | 11 | 17 => (82, 82),
+            _ => (95, 95),
+        };
+
+        ImageFormat {
+            mode: ImageMode::JPEG,
+            size,
+            rotation: ImageRotation::Rot90,
+            mirror: ImageMirroring::Both,
+        }
+    }
+
+    pub fn opendeck_to_device_key(&self, key: u8) -> u8 {
+        match self {
+            Self::HSV293V3_1006 if key < KEY_COUNT_293V3 as u8 => {
+                HSV293V3_OPENDECK_TO_DEVICE[key as usize]
+            }
+            _ if key < KEY_COUNT as u8 => MATRIX_3X6_OPENDECK_TO_DEVICE[key as usize],
+            _ => key,
+        }
+    }
+
+    pub fn input_processor(&self) -> fn(u8, u8) -> Result<DeviceInput, MirajazzError> {
+        match self {
+            Self::HSV293V3_1006 => process_input_hsv293v3,
+            _ => process_input_matrix_3x6,
         }
     }
 
@@ -194,6 +277,7 @@ impl Kind {
             Self::HSV293S => "Mirabox HSV293S",
             Self::HSV293SV3 => "Mirabox HSV293SV3",
             Self::HSV293SV3_1005 => "Mirabox HSV293SV3",
+            Self::HSV293V3_1006 => "Mirabox HSV293V3",
             Self::AKP153 => "Ajazz AKP153",
             Self::AKP153E => "Ajazz AKP153E",
             Self::AKP153R => "Ajazz AKP153R",
@@ -225,6 +309,7 @@ impl Kind {
             // This method would not be called for "v2"/"v3" devices, so mark them as unreachable
             Self::HSV293SV3 => unreachable!(),
             Self::HSV293SV3_1005 => unreachable!(),
+            Self::HSV293V3_1006 => unreachable!(),
             Self::AKP153EREV2 | Self::AKP153RREV2 => unreachable!(),
             Self::SFSTC => unreachable!(),
         }
