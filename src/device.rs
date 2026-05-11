@@ -2,6 +2,7 @@ use data_url::DataUrl;
 use image::load_from_memory_with_format;
 use mirajazz::{device::Device, error::MirajazzError, state::DeviceStateUpdate};
 use openaction::{OUTBOUND_EVENT_MANAGER, SetImageEvent};
+use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
@@ -62,6 +63,7 @@ pub async fn device_task(candidate: CandidateDevice, token: CancellationToken) {
 
     tokio::select! {
         _ = device_events_task(&candidate) => {},
+        _ = device_flush_task(&candidate.id, token.clone()) => {},
         _ = token.cancelled() => {}
     };
 
@@ -120,6 +122,31 @@ pub async fn connect(candidate: &CandidateDevice) -> Result<Device, MirajazzErro
     }
 }
 
+/// Periodically flushes queued images to the device, coalescing rapid screen updates.
+/// Runs on a 16ms interval; errors trigger device cleanup via handle_error.
+async fn device_flush_task(id: &String, token: CancellationToken) {
+    let mut interval = tokio::time::interval(Duration::from_millis(16));
+    loop {
+        tokio::select! {
+            _ = interval.tick() => {
+                let flush_result = {
+                    let guard = DEVICES.read().await;
+                    if let Some(device) = guard.get(id) {
+                        device.flush().await
+                    } else {
+                        Ok(())
+                    }
+                };
+                if let Err(err) = flush_result {
+                    handle_error(id, err).await;
+                    break;
+                }
+            }
+            _ = token.cancelled() => break,
+        }
+    }
+}
+
 /// Handles events from device to OpenDeck
 async fn device_events_task(candidate: &CandidateDevice) -> Result<(), MirajazzError> {
     log::info!("Connecting to {} for incoming events", candidate.id);
@@ -138,7 +165,7 @@ async fn device_events_task(candidate: &CandidateDevice) -> Result<(), MirajazzE
     loop {
         log::info!("Reading updates...");
 
-        let updates = match reader.read(None).await {
+        let updates = match reader.read(Some(Duration::from_secs(5))).await {
             Ok(updates) => updates,
             Err(e) => {
                 if !handle_error(&candidate.id, e).await {
@@ -206,13 +233,13 @@ pub async fn handle_set_image(device: &Device, evt: SetImageEvent) -> Result<(),
                     image,
                 )
                 .await?;
-            device.flush().await?;
+            // flush is handled by device_flush_task on a 16ms interval
         }
         (Some(position), None) => {
             device
                 .clear_button_image(opendeck_to_device(position))
                 .await?;
-            device.flush().await?;
+            // flush is handled by device_flush_task on a 16ms interval
         }
         (None, None) => {
             device.clear_all_button_images().await?;

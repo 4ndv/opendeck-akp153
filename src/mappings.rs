@@ -96,6 +96,17 @@ pub const QUERIES: [DeviceQuery; 14] = [
 
 /// Returns correct image format for device kind and key
 pub fn get_image_format_for_key(kind: &Kind, key: u8) -> ImageFormat {
+    // Isolated branch for RMV01: currently identical to v1 baseline.
+    // If images cause device freezes, try size: (95, 95) to match Mirabox HSV293S siblings.
+    if matches!(kind, Kind::RMV01) {
+        return ImageFormat {
+            mode: ImageMode::JPEG,
+            size: (85, 85),
+            rotation: ImageRotation::Rot90,
+            mirror: ImageMirroring::Both,
+        };
+    }
+
     if kind.protocol_version() == 1 {
         return ImageFormat {
             mode: ImageMode::JPEG,
