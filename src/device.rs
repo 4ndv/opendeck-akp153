@@ -165,7 +165,7 @@ async fn device_events_task(candidate: &CandidateDevice) -> Result<(), MirajazzE
     loop {
         log::info!("Reading updates...");
 
-        let updates = match reader.read(Some(Duration::from_secs(5))).await {
+        let updates = match reader.read(None).await {
             Ok(updates) => updates,
             Err(e) => {
                 if !handle_error(&candidate.id, e).await {
