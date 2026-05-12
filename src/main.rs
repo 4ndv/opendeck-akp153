@@ -1,12 +1,8 @@
 use device::{handle_error, handle_set_image};
 use mirajazz::device::Device;
 use openaction::*;
-use std::{
-    collections::HashMap,
-    process::exit,
-    sync::{Arc, LazyLock, atomic::AtomicBool},
-};
-use tokio::sync::{Mutex, RwLock};
+use std::{collections::HashMap, process::exit, sync::{Arc, LazyLock}};
+use tokio::sync::{Mutex, Notify, RwLock};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use watcher::watcher_task;
 
@@ -22,7 +18,7 @@ pub static DEVICES: LazyLock<RwLock<HashMap<String, Device>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 pub static TOKENS: LazyLock<RwLock<HashMap<String, CancellationToken>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
-pub static FLUSH_PENDING: LazyLock<RwLock<HashMap<String, Arc<AtomicBool>>>> =
+pub static FLUSH_NOTIFY: LazyLock<RwLock<HashMap<String, Arc<Notify>>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 pub static TRACKER: LazyLock<Mutex<TaskTracker>> = LazyLock::new(|| Mutex::new(TaskTracker::new()));
 
