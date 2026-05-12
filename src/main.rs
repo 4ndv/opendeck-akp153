@@ -1,7 +1,11 @@
 use device::{handle_error, handle_set_image};
 use mirajazz::device::Device;
 use openaction::*;
-use std::{collections::HashMap, process::exit, sync::LazyLock};
+use std::{
+    collections::HashMap,
+    process::exit,
+    sync::{Arc, LazyLock, atomic::AtomicBool},
+};
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use watcher::watcher_task;
@@ -17,6 +21,8 @@ mod watcher;
 pub static DEVICES: LazyLock<RwLock<HashMap<String, Device>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 pub static TOKENS: LazyLock<RwLock<HashMap<String, CancellationToken>>> =
+    LazyLock::new(|| RwLock::new(HashMap::new()));
+pub static FLUSH_PENDING: LazyLock<RwLock<HashMap<String, Arc<AtomicBool>>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 pub static TRACKER: LazyLock<Mutex<TaskTracker>> = LazyLock::new(|| Mutex::new(TaskTracker::new()));
 
@@ -57,7 +63,7 @@ impl openaction::GlobalEventHandler for GlobalEventHandler {
         let id = event.device.clone();
 
         if let Some(device) = DEVICES.read().await.get(&event.device) {
-            handle_set_image(device, event)
+            handle_set_image(device, &id, event)
                 .await
                 .map_err(async |err| handle_error(&id, err).await)
                 .ok();

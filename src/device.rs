@@ -2,11 +2,14 @@ use data_url::DataUrl;
 use image::load_from_memory_with_format;
 use mirajazz::{device::Device, error::MirajazzError, state::DeviceStateUpdate};
 use openaction::{OUTBOUND_EVENT_MANAGER, SetImageEvent};
-use std::time::Duration;
+use std::{
+    sync::{Arc, atomic::{AtomicBool, Ordering}},
+    time::Duration,
+};
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    DEVICES, TOKENS,
+    DEVICES, FLUSH_PENDING, TOKENS,
     inputs::opendeck_to_device,
     mappings::{
         COL_COUNT, CandidateDevice, ENCODER_COUNT, KEY_COUNT, Kind, ROW_COUNT,
@@ -61,11 +64,16 @@ pub async fn device_task(candidate: CandidateDevice, token: CancellationToken) {
 
     DEVICES.write().await.insert(candidate.id.clone(), device);
 
+    let flush_pending = Arc::new(AtomicBool::new(false));
+    FLUSH_PENDING.write().await.insert(candidate.id.clone(), flush_pending.clone());
+
     tokio::select! {
         _ = device_events_task(&candidate) => {},
-        _ = device_flush_task(&candidate.id, token.clone()) => {},
+        _ = device_flush_task(&candidate.id, flush_pending, token.clone()) => {},
         _ = token.cancelled() => {}
     };
+
+    FLUSH_PENDING.write().await.remove(&candidate.id);
 
     log::info!("Shutting down device {:?}", candidate);
 
@@ -123,12 +131,15 @@ pub async fn connect(candidate: &CandidateDevice) -> Result<Device, MirajazzErro
 }
 
 /// Periodically flushes queued images to the device, coalescing rapid screen updates.
-/// Runs on a 16ms interval; errors trigger device cleanup via handle_error.
-async fn device_flush_task(id: &String, token: CancellationToken) {
+/// Runs on a 16ms interval; skips flush when no images were queued since the last tick.
+async fn device_flush_task(id: &String, pending: Arc<AtomicBool>, token: CancellationToken) {
     let mut interval = tokio::time::interval(Duration::from_millis(16));
     loop {
         tokio::select! {
             _ = interval.tick() => {
+                if !pending.swap(false, Ordering::AcqRel) {
+                    continue;
+                }
                 let flush_result = {
                     let guard = DEVICES.read().await;
                     if let Some(device) = guard.get(id) {
@@ -206,7 +217,7 @@ async fn device_events_task(candidate: &CandidateDevice) -> Result<(), MirajazzE
 }
 
 /// Handles different combinations of "set image" event, including clearing the specific buttons and whole device
-pub async fn handle_set_image(device: &Device, evt: SetImageEvent) -> Result<(), MirajazzError> {
+pub async fn handle_set_image(device: &Device, id: &str, evt: SetImageEvent) -> Result<(), MirajazzError> {
     match (evt.position, evt.image) {
         (Some(position), Some(image)) => {
             log::info!("Setting image for button {}", position);
@@ -233,13 +244,19 @@ pub async fn handle_set_image(device: &Device, evt: SetImageEvent) -> Result<(),
                     image,
                 )
                 .await?;
-            // flush is handled by device_flush_task on a 16ms interval
+
+            if let Some(flag) = FLUSH_PENDING.read().await.get(id) {
+                flag.store(true, Ordering::Release);
+            }
         }
         (Some(position), None) => {
             device
                 .clear_button_image(opendeck_to_device(position))
                 .await?;
-            // flush is handled by device_flush_task on a 16ms interval
+
+            if let Some(flag) = FLUSH_PENDING.read().await.get(id) {
+                flag.store(true, Ordering::Release);
+            }
         }
         (None, None) => {
             device.clear_all_button_images().await?;

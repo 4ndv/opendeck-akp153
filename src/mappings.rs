@@ -96,17 +96,6 @@ pub const QUERIES: [DeviceQuery; 14] = [
 
 /// Returns correct image format for device kind and key
 pub fn get_image_format_for_key(kind: &Kind, key: u8) -> ImageFormat {
-    // Isolated branch for RMV01: currently identical to v1 baseline.
-    // If images cause device freezes, try size: (95, 95) to match Mirabox HSV293S siblings.
-    if matches!(kind, Kind::RMV01) {
-        return ImageFormat {
-            mode: ImageMode::JPEG,
-            size: (85, 85),
-            rotation: ImageRotation::Rot90,
-            mirror: ImageMirroring::Both,
-        };
-    }
-
     if kind.protocol_version() == 1 {
         return ImageFormat {
             mode: ImageMode::JPEG,
@@ -248,4 +237,158 @@ pub struct CandidateDevice {
     pub id: String,
     pub dev: HidDeviceInfo,
     pub kind: Kind,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Every (VID, PID) pair in the QUERIES array must resolve to a Kind.
+    #[test]
+    fn all_queries_resolve_to_a_kind() {
+        let cases: &[(u16, u16)] = &[
+            (MIRABOX_VID,   HSV293S_PID),
+            (MIRABOX_2_VID, HSV293SV3_PID),
+            (MIRABOX_2_VID, HSV293SV3_1005_PID),
+            (MIRABOX_VID,   AKP153_PID),
+            (AJAZZ_VID,     AKP153E_PID),
+            (AJAZZ_VID,     AKP153R_PID),
+            (AJAZZ_VID,     AKP153E_REV2_PID),
+            (AJAZZ_VID,     AKP153R_REV2_PID),
+            (MG_VID,        MSD_ONE_PID),
+            (MADDOG_VID,    GK150K_PID),
+            (RISEMODE_VID,  RMV01_PID),
+            (SF_STC_VID,    SF_STC_PID),
+            (TMICE_VID,     TMICESC_PID),
+            (WOMIER_VID,    D15_PID),
+        ];
+        assert_eq!(cases.len(), QUERIES.len(), "test list is out of sync with QUERIES");
+        for &(vid, pid) in cases {
+            assert!(
+                Kind::from_vid_pid(vid, pid).is_some(),
+                "from_vid_pid(0x{vid:04x}, 0x{pid:04x}) returned None"
+            );
+        }
+    }
+
+    // Unknown VID/PID combos must return None, not panic.
+    #[test]
+    fn unknown_vid_pid_returns_none() {
+        assert!(Kind::from_vid_pid(0x0000, 0x0000).is_none());
+        assert!(Kind::from_vid_pid(0xFFFF, 0xFFFF).is_none());
+        // Known VID but wrong PID
+        assert!(Kind::from_vid_pid(AJAZZ_VID, 0x9999).is_none());
+    }
+
+    // v1 devices must return 1, v3 devices must return 3. There are no v2 devices currently.
+    #[test]
+    fn protocol_versions_are_correct() {
+        let v1_kinds = [
+            Kind::HSV293S, Kind::AKP153, Kind::AKP153E, Kind::AKP153R,
+            Kind::MSDONE, Kind::GK150K, Kind::RMV01, Kind::TMICESC, Kind::D15,
+        ];
+        let v3_kinds = [
+            Kind::HSV293SV3, Kind::HSV293SV3_1005,
+            Kind::AKP153EREV2, Kind::AKP153RREV2, Kind::SFSTC,
+        ];
+        for k in &v1_kinds {
+            assert_eq!(k.protocol_version(), 1, "{k:?} should be protocol v1");
+        }
+        for k in &v3_kinds {
+            assert_eq!(k.protocol_version(), 3, "{k:?} should be protocol v3");
+        }
+    }
+
+    // id_suffix must be unique across all v1 kinds so device IDs don't collide.
+    #[test]
+    fn v1_id_suffixes_are_unique() {
+        let v1_kinds = [
+            Kind::HSV293S, Kind::AKP153, Kind::AKP153E, Kind::AKP153R,
+            Kind::MSDONE, Kind::GK150K, Kind::RMV01, Kind::TMICESC, Kind::D15,
+        ];
+        let mut suffixes: Vec<String> = v1_kinds.iter().map(|k| k.id_suffix()).collect();
+        let original_len = suffixes.len();
+        suffixes.dedup();
+        suffixes.sort();
+        suffixes.dedup();
+        assert_eq!(suffixes.len(), original_len, "duplicate id_suffix detected");
+    }
+
+    // v1 devices use 85×85 JPEG; v3 interior keys use 95×95, right-column keys use 82×82.
+    #[test]
+    fn image_format_v1_is_85x85() {
+        let v1_kinds = [
+            Kind::HSV293S, Kind::AKP153, Kind::AKP153E, Kind::AKP153R,
+            Kind::MSDONE, Kind::GK150K, Kind::RMV01, Kind::TMICESC, Kind::D15,
+        ];
+        for k in &v1_kinds {
+            for key in 0..KEY_COUNT as u8 {
+                let fmt = get_image_format_for_key(k, key);
+                assert_eq!(
+                    fmt.size, (85, 85),
+                    "{k:?} key {key}: expected 85×85, got {:?}", fmt.size
+                );
+                assert!(matches!(fmt.mode, ImageMode::JPEG));
+            }
+        }
+    }
+
+    #[test]
+    fn image_format_v3_right_column_is_82x82() {
+        let v3_kinds = [
+            Kind::HSV293SV3, Kind::HSV293SV3_1005,
+            Kind::AKP153EREV2, Kind::AKP153RREV2, Kind::SFSTC,
+        ];
+        let right_column = [5u8, 11, 17];
+        for k in &v3_kinds {
+            for &key in &right_column {
+                let fmt = get_image_format_for_key(k, key);
+                assert_eq!(
+                    fmt.size, (82, 82),
+                    "{k:?} key {key}: expected 82×82, got {:?}", fmt.size
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn image_format_v3_interior_keys_are_95x95() {
+        let v3_kinds = [
+            Kind::HSV293SV3, Kind::HSV293SV3_1005,
+            Kind::AKP153EREV2, Kind::AKP153RREV2, Kind::SFSTC,
+        ];
+        let right_column = [5u8, 11, 17];
+        for k in &v3_kinds {
+            for key in 0..KEY_COUNT as u8 {
+                if right_column.contains(&key) { continue; }
+                let fmt = get_image_format_for_key(k, key);
+                assert_eq!(
+                    fmt.size, (95, 95),
+                    "{k:?} key {key}: expected 95×95, got {:?}", fmt.size
+                );
+            }
+        }
+    }
+
+    // human_name must be non-empty for every Kind.
+    #[test]
+    fn all_kinds_have_human_names() {
+        let all_kinds = [
+            Kind::HSV293S, Kind::HSV293SV3, Kind::HSV293SV3_1005,
+            Kind::AKP153, Kind::AKP153E, Kind::AKP153R,
+            Kind::AKP153EREV2, Kind::AKP153RREV2,
+            Kind::MSDONE, Kind::GK150K, Kind::RMV01,
+            Kind::SFSTC, Kind::TMICESC, Kind::D15,
+        ];
+        assert_eq!(all_kinds.len(), QUERIES.len(), "test list is out of sync with QUERIES");
+        for k in &all_kinds {
+            assert!(!k.human_name().is_empty(), "{k:?} has empty human_name");
+        }
+    }
+
+    // QUERIES must have exactly one entry per Kind — no accidental duplicates.
+    #[test]
+    fn queries_count_matches_kind_count() {
+        assert_eq!(QUERIES.len(), 14);
+    }
 }
