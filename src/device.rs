@@ -131,7 +131,7 @@ pub async fn connect(candidate: &CandidateDevice) -> Result<Device, MirajazzErro
     }
 }
 
-/// Flushes queued images after a 16ms quiet window following the last set_button_image call.
+/// Flushes queued images after a 50ms quiet window following the last set_button_image call.
 /// Sleeps entirely when the device is idle — no polling.
 async fn device_flush_task(id: &String, notify: Arc<Notify>, token: CancellationToken) {
     loop {
@@ -145,13 +145,14 @@ async fn device_flush_task(id: &String, notify: Arc<Notify>, token: Cancellation
             tokio::select! {
                 _ = notify.notified() => {}
                 _ = token.cancelled() => return,
-                _ = tokio::time::sleep(Duration::from_millis(16)) => break,
+                _ = tokio::time::sleep(Duration::from_millis(50)) => break,
             }
         }
 
         let flush_result = {
             let guard = DEVICES.read().await;
             if let Some(device) = guard.get(id) {
+                log::info!("Flushing pending updates");
                 device.flush().await
             } else {
                 Ok(())
