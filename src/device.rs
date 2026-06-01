@@ -63,7 +63,10 @@ pub async fn device_task(candidate: CandidateDevice, token: CancellationToken) {
     DEVICES.write().await.insert(candidate.id.clone(), device);
 
     let flush_notify = Arc::new(Notify::new());
-    FLUSH_NOTIFY.write().await.insert(candidate.id.clone(), flush_notify.clone());
+    FLUSH_NOTIFY
+        .write()
+        .await
+        .insert(candidate.id.clone(), flush_notify.clone());
 
     tokio::select! {
         _ = device_events_task(&candidate) => {},
@@ -220,7 +223,11 @@ async fn device_events_task(candidate: &CandidateDevice) -> Result<(), MirajazzE
 }
 
 /// Handles different combinations of "set image" event, including clearing the specific buttons and whole device
-pub async fn handle_set_image(device: &Device, id: &str, evt: SetImageEvent) -> Result<(), MirajazzError> {
+pub async fn handle_set_image(
+    device: &Device,
+    id: &str,
+    evt: SetImageEvent,
+) -> Result<(), MirajazzError> {
     match (evt.position, evt.image) {
         (Some(position), Some(image)) => {
             log::info!("Setting image for button {}", position);
