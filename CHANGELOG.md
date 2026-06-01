@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.0] - 2026-06-01
+
+### 🚀 Features
+
+- *(device)* Debounce flush, improving responsiveness (#39)
+
+### 🐛 Bug Fixes
+
+- *(device)* Change flush debounce wait to 50ms, log on flush
+
+### 💼 Other
+
+- *(deps)* Bump mirajazz to 0.11.2
+- *(deps)* Bump mirajazz to 0.15.1
+
+### ⚙️ Miscellaneous Tasks
+
+- Remove `just prepare` from README
+- Reformat
+
 ## [0.9.5] - 2026-02-27
 
 ### 🚀 Features
