@@ -2,10 +2,12 @@ use data_url::DataUrl;
 use image::load_from_memory_with_format;
 use mirajazz::{device::Device, error::MirajazzError, state::DeviceStateUpdate};
 use openaction::{OUTBOUND_EVENT_MANAGER, SetImageEvent};
+use std::{sync::Arc, time::Duration};
+use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    DEVICES, TOKENS,
+    DEVICES, FLUSH_NOTIFY, TOKENS,
     inputs::opendeck_to_device,
     mappings::{
         COL_COUNT, CandidateDevice, ENCODER_COUNT, KEY_COUNT, Kind, ROW_COUNT,
@@ -60,10 +62,16 @@ pub async fn device_task(candidate: CandidateDevice, token: CancellationToken) {
 
     DEVICES.write().await.insert(candidate.id.clone(), device);
 
+    let flush_notify = Arc::new(Notify::new());
+    FLUSH_NOTIFY.write().await.insert(candidate.id.clone(), flush_notify.clone());
+
     tokio::select! {
         _ = device_events_task(&candidate) => {},
+        _ = device_flush_task(&candidate.id, flush_notify, token.clone()) => {},
         _ = token.cancelled() => {}
     };
+
+    FLUSH_NOTIFY.write().await.remove(&candidate.id);
 
     log::info!("Shutting down device {:?}", candidate);
 
@@ -116,6 +124,39 @@ pub async fn connect(candidate: &CandidateDevice) -> Result<Device, MirajazzErro
             log::error!("Error while connecting to device: {e}");
 
             Err(e)
+        }
+    }
+}
+
+/// Flushes queued images after a 16ms quiet window following the last set_button_image call.
+/// Sleeps entirely when the device is idle — no polling.
+async fn device_flush_task(id: &String, notify: Arc<Notify>, token: CancellationToken) {
+    loop {
+        tokio::select! {
+            _ = notify.notified() => {}
+            _ = token.cancelled() => break,
+        }
+
+        // Keep resetting the window while more images arrive; fire when quiet for 16ms.
+        loop {
+            tokio::select! {
+                _ = notify.notified() => {}
+                _ = token.cancelled() => return,
+                _ = tokio::time::sleep(Duration::from_millis(16)) => break,
+            }
+        }
+
+        let flush_result = {
+            let guard = DEVICES.read().await;
+            if let Some(device) = guard.get(id) {
+                device.flush().await
+            } else {
+                Ok(())
+            }
+        };
+        if let Err(err) = flush_result {
+            handle_error(id, err).await;
+            break;
         }
     }
 }
@@ -179,7 +220,7 @@ async fn device_events_task(candidate: &CandidateDevice) -> Result<(), MirajazzE
 }
 
 /// Handles different combinations of "set image" event, including clearing the specific buttons and whole device
-pub async fn handle_set_image(device: &Device, evt: SetImageEvent) -> Result<(), MirajazzError> {
+pub async fn handle_set_image(device: &Device, id: &str, evt: SetImageEvent) -> Result<(), MirajazzError> {
     match (evt.position, evt.image) {
         (Some(position), Some(image)) => {
             log::info!("Setting image for button {}", position);
@@ -206,13 +247,19 @@ pub async fn handle_set_image(device: &Device, evt: SetImageEvent) -> Result<(),
                     image,
                 )
                 .await?;
-            device.flush().await?;
+
+            if let Some(notify) = FLUSH_NOTIFY.read().await.get(id) {
+                notify.notify_one();
+            }
         }
         (Some(position), None) => {
             device
                 .clear_button_image(opendeck_to_device(position))
                 .await?;
-            device.flush().await?;
+
+            if let Some(notify) = FLUSH_NOTIFY.read().await.get(id) {
+                notify.notify_one();
+            }
         }
         (None, None) => {
             device.clear_all_button_images().await?;
