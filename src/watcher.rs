@@ -1,3 +1,4 @@
+use std::time::Instant;
 use futures_lite::StreamExt;
 use mirajazz::{
     device::{DeviceWatcher, list_devices},
@@ -12,6 +13,8 @@ use crate::{
     device::device_task,
     mappings::{CandidateDevice, DEVICE_NAMESPACE, Kind, QUERIES},
 };
+
+const SLEEP_THRESHOLD: std::time::Duration = std::time::Duration::from_secs(3);
 
 fn get_device_id(dev: &HidDeviceInfo) -> Option<String> {
     let kind = Kind::from_vid_pid(dev.vendor_id, dev.product_id)?;
@@ -62,80 +65,129 @@ async fn get_candidates() -> Result<Vec<CandidateDevice>, MirajazzError> {
 pub async fn watcher_task(token: CancellationToken) -> Result<(), MirajazzError> {
     let tracker = TRACKER.lock().await.clone();
 
-    // Scans for connected devices that (possibly) we can use
-    let candidates = get_candidates().await?;
+    'outer: loop {
+        if token.is_cancelled() {
+            break 'outer Ok(());
+        }
 
-    log::info!("Looking for connected devices");
+        // Cancel all device tasks from previous iteration.
+        {
+            let mut tokens = TOKENS.write().await;
+            tokens.retain(|id, tok| {
+                if id != "_watcher_task" {
+                    tok.cancel();
+                }
+                id == "_watcher_task"
+            });
+        }
+        DEVICES.write().await.clear();
 
-    for candidate in candidates {
-        log::info!("New candidate {:#?}", candidate);
+        // Give old device_tasks time to finish cleanup before rescanning.
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
 
-        let token = CancellationToken::new();
+        let candidates = get_candidates().await?;
 
-        TOKENS
-            .write()
-            .await
-            .insert(candidate.id.clone(), token.clone());
+        log::info!("Looking for connected devices");
 
-        tracker.spawn(device_task(candidate, token));
-    }
+        for candidate in candidates {
+            log::info!("New candidate {:#?}", candidate);
 
-    let mut watcher = DeviceWatcher::new();
-    let mut watcher_stream = watcher.watch(&QUERIES).await?;
+            let token = CancellationToken::new();
 
-    log::info!("Watcher is ready");
+            TOKENS
+                .write()
+                .await
+                .insert(candidate.id.clone(), token.clone());
 
-    loop {
-        let ev = tokio::select! {
-            v = watcher_stream.next() => v,
-            _ = token.cancelled() => None
+            tracker.spawn(device_task(candidate, token));
+        }
+
+        let mut watcher = DeviceWatcher::new();
+        let mut watcher_stream = match watcher.watch(&QUERIES).await {
+            Ok(stream) => stream,
+            Err(err) => {
+                log::error!("Failed to start watcher: {err}, retrying in 3 seconds");
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                continue;
+            }
         };
 
-        if let Some(ev) = ev {
-            log::info!("New device event: {:?}", ev);
+        log::info!("Watcher is ready");
 
-            match ev {
-                DeviceLifecycleEvent::Connected(info) => {
-                    if let Some(candidate) = device_info_to_candidate(info) {
-                        // Don't add existing device again
-                        if DEVICES.read().await.contains_key(&candidate.id) {
-                            continue;
+        let mut last_check = Instant::now();
+
+        loop {
+            let ev = tokio::select! {
+                v = watcher_stream.next() => v,
+                _ = token.cancelled() => None,
+                _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {
+                    let elapsed = last_check.elapsed();
+                    last_check = Instant::now();
+
+                    if elapsed > SLEEP_THRESHOLD {
+                        log::warn!(
+                            "System sleep detected ({:?} gap), restarting device discovery",
+                            elapsed
+                        );
+                        last_check = Instant::now();
+                        continue 'outer;
+                    }
+
+                    continue;
+                }
+            };
+
+            if let Some(ev) = ev {
+                log::info!("New device event: {:?}", ev);
+
+                match ev {
+                    DeviceLifecycleEvent::Connected(info) => {
+                        if let Some(candidate) = device_info_to_candidate(info) {
+                            if DEVICES.read().await.contains_key(&candidate.id) {
+                                continue;
+                            }
+
+                            let token = CancellationToken::new();
+
+                            TOKENS
+                                .write()
+                                .await
+                                .insert(candidate.id.clone(), token.clone());
+
+                            log::debug!("Spawning task for new device: {:?}", candidate);
+                            tracker.spawn(device_task(candidate, token));
+                            log::debug!("Spawned");
+                        }
+                    }
+                    DeviceLifecycleEvent::Disconnected(info) => {
+                        let id = get_device_id(&info)
+                            .expect("Unable to get device id, check mappings in Kind::from_vid_pid");
+
+                        if let Some(token) = TOKENS.write().await.remove(&id) {
+                            log::info!("Sending cancel request for {}", id);
+                            token.cancel();
                         }
 
-                        let token = CancellationToken::new();
+                        DEVICES.write().await.remove(&id);
 
-                        TOKENS
-                            .write()
-                            .await
-                            .insert(candidate.id.clone(), token.clone());
+                        if let Some(outbound) = OUTBOUND_EVENT_MANAGER.lock().await.as_mut() {
+                            outbound.deregister_device(id.clone()).await.ok();
+                        }
 
-                        log::debug!("Spawning task for new device: {:?}", candidate);
-                        tracker.spawn(device_task(candidate, token));
-                        log::debug!("Spawned");
+                        log::info!("Disconnected device {}", id);
                     }
                 }
-                DeviceLifecycleEvent::Disconnected(info) => {
-                    let id = get_device_id(&info)
-                        .expect("Unable to get device id, check mappings in Kind::from_vid_pid");
+            } else {
+                log::info!("Watcher stream ended");
 
-                    if let Some(token) = TOKENS.write().await.remove(&id) {
-                        log::info!("Sending cancel request for {}", id);
-                        token.cancel();
-                    }
-
-                    DEVICES.write().await.remove(&id);
-
-                    if let Some(outbound) = OUTBOUND_EVENT_MANAGER.lock().await.as_mut() {
-                        outbound.deregister_device(id.clone()).await.ok();
-                    }
-
-                    log::info!("Disconnected device {}", id);
+                if token.is_cancelled() {
+                    break 'outer Ok(());
                 }
+
+                log::warn!("Watcher ended unexpectedly, restarting in 3 seconds");
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                break;
             }
-        } else {
-            log::info!("Watcher is shutting down");
-
-            break Ok(());
         }
     }
 }
