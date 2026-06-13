@@ -1,17 +1,4 @@
-﻿# Changelog
-
-## [0.11.0] - 2026-06-13
-
-### 🚀 Features
-
-- *(device)* Add periodic keepalive ping every 10s to detect and recover frozen devices after system sleep
-- *(watcher)* Add wall-clock sleep detection — on wake, force full device rescan and reconnection
-
-## [0.10.1] - 2026-06-04
-
-### 🐛 Bug Fixes
-
-- *(watcher)* Auto-restart watcher on stream end/crash, fixing device unresponsive after sleep/resume
+# Changelog
 
 All notable changes to this project will be documented in this file.
 
