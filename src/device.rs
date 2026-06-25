@@ -71,7 +71,6 @@ pub async fn device_task(candidate: CandidateDevice, token: CancellationToken) {
     tokio::select! {
         _ = device_events_task(&candidate) => {},
         _ = device_flush_task(&candidate.id, flush_notify, token.clone()) => {},
-        _ = device_keepalive_task(&candidate.id, token.clone()) => {},
         _ = token.cancelled() => {}
     };
 
@@ -222,41 +221,6 @@ async fn device_events_task(candidate: &CandidateDevice) -> Result<(), MirajazzE
     }
 
     Ok(())
-}
-
-/// Sends periodic keepalive pings to the device.
-/// If the device stops responding (e.g. after system sleep), triggers reconnection via handle_error.
-pub async fn device_keepalive_task(id: &String, token: CancellationToken) {
-    const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(10);
-
-    loop {
-        tokio::select! {
-            _ = token.cancelled() => break,
-            _ = tokio::time::sleep(KEEPALIVE_INTERVAL) => {}
-        }
-
-        let result = {
-            let guard = DEVICES.read().await;
-            if let Some(device) = guard.get(id) {
-                log::debug!("Sending keepalive to device {}", id);
-                Some(device.keep_alive().await)
-            } else {
-                None
-            }
-        };
-
-        match result {
-            Some(Ok(())) => {
-                log::debug!("Keepalive OK for device {}", id);
-            }
-            Some(Err(err)) => {
-                log::warn!("Keepalive failed for device {}: {}", id, err);
-                handle_error(id, err).await;
-                break;
-            }
-            None => break, // Device already removed
-        }
-    }
 }
 
 /// Handles different combinations of "set image" event, including clearing the specific buttons and whole device

@@ -4,7 +4,7 @@ use openaction::*;
 use std::{collections::HashMap, process::exit, sync::{Arc, LazyLock}};
 use tokio::sync::{Mutex, Notify, RwLock};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
-use watcher::watcher_task;
+use watcher::{WOKE_UP, watcher_task};
 
 #[cfg(not(target_os = "windows"))]
 use tokio::signal::unix::{SignalKind, signal};
@@ -89,6 +89,16 @@ impl openaction::GlobalEventHandler for GlobalEventHandler {
             log::error!("Received event for unknown device: {}", event.device);
         }
 
+        Ok(())
+    }
+
+    async fn system_did_wake_up(
+        &self,
+        _event: SystemDidWakeUpEvent,
+        _outbound: &mut OutboundEventManager,
+    ) -> EventHandlerResult {
+        log::info!("System wake via systemDidWakeUp, triggering device rediscovery");
+        WOKE_UP.store(true, std::sync::atomic::Ordering::SeqCst);
         Ok(())
     }
 }

@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::sync::atomic::{AtomicBool, Ordering};
 use futures_lite::StreamExt;
 use mirajazz::{
     device::{DeviceWatcher, list_devices},
@@ -14,7 +14,8 @@ use crate::{
     mappings::{CandidateDevice, DEVICE_NAMESPACE, Kind, QUERIES},
 };
 
-const SLEEP_THRESHOLD: std::time::Duration = std::time::Duration::from_secs(3);
+/// Set by `systemDidWakeUp` event handler in main.rs to trigger device rediscovery.
+pub static WOKE_UP: AtomicBool = AtomicBool::new(false);
 
 fn get_device_id(dev: &HidDeviceInfo) -> Option<String> {
     let kind = Kind::from_vid_pid(dev.vendor_id, dev.product_id)?;
@@ -114,25 +115,15 @@ pub async fn watcher_task(token: CancellationToken) -> Result<(), MirajazzError>
 
         log::info!("Watcher is ready");
 
-        let mut last_check = Instant::now();
-
         loop {
             let ev = tokio::select! {
                 v = watcher_stream.next() => v,
                 _ = token.cancelled() => None,
                 _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {
-                    let elapsed = last_check.elapsed();
-                    last_check = Instant::now();
-
-                    if elapsed > SLEEP_THRESHOLD {
-                        log::warn!(
-                            "System sleep detected ({:?} gap), restarting device discovery",
-                            elapsed
-                        );
-                        last_check = Instant::now();
+                    if WOKE_UP.swap(false, Ordering::SeqCst) {
+                        log::info!("System wake via systemDidWakeUp, restarting device discovery");
                         continue 'outer;
                     }
-
                     continue;
                 }
             };
