@@ -23,6 +23,7 @@ pub enum Kind {
     AKP153EREV2,
     AKP153RREV2,
     MSDONE,
+    MSDONE_1005,
     GK150K,
     RMV01,
     SFSTC,
@@ -51,6 +52,7 @@ pub const AKP153E_REV2_PID: u16 = 0x3010;
 pub const AKP153R_REV2_PID: u16 = 0x3011;
 
 pub const MSD_ONE_PID: u16 = 0x1000;
+pub const MSD_ONE_1005_PID: u16 = 0x1005;
 
 pub const GK150K_PID: u16 = 0x1000;
 
@@ -71,13 +73,14 @@ pub const AKP153R_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP
 pub const AKP153E_REV2_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153E_REV2_PID);
 pub const AKP153R_REV2_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, AJAZZ_VID, AKP153R_REV2_PID);
 pub const MSD_ONE_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MG_VID, MSD_ONE_PID);
+pub const MSD_ONE_1005_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MG_VID, MSD_ONE_1005_PID);
 pub const GK150K_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MADDOG_VID, GK150K_PID);
 pub const RMV01_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, RISEMODE_VID, RMV01_PID);
 pub const SF_STC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, SF_STC_VID, SF_STC_PID);
 pub const TMICESC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, TMICE_VID, TMICESC_PID);
 pub const D15_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, WOMIER_VID, D15_PID);
 
-pub const QUERIES: [DeviceQuery; 14] = [
+pub const QUERIES: [DeviceQuery; 15] = [
     HSV293S_QUERY,
     HSV293SV3_QUERY,
     HSV293SV3_1005_QUERY,
@@ -87,6 +90,7 @@ pub const QUERIES: [DeviceQuery; 14] = [
     AKP153E_REV2_QUERY,
     AKP153R_REV2_QUERY,
     MSD_ONE_QUERY,
+    MSD_ONE_1005_QUERY,
     GK150K_QUERY,
     RMV01_QUERY,
     SF_STC_QUERY,
@@ -144,6 +148,7 @@ impl Kind {
 
             MG_VID => match pid {
                 MSD_ONE_PID => Some(Kind::MSDONE),
+                MSD_ONE_1005_PID => Some(Kind::MSDONE_1005),
                 _ => None,
             },
 
@@ -181,6 +186,7 @@ impl Kind {
         match self {
             Self::HSV293SV3 => 3,
             Self::HSV293SV3_1005 => 3,
+            Self::MSDONE_1005 => 3,
             Self::AKP153EREV2 | Self::AKP153RREV2 => 3,
             Self::SFSTC => 3,
             _ => 1,
@@ -200,6 +206,7 @@ impl Kind {
             Self::AKP153EREV2 => "Ajazz AKP153E (rev. 2)",
             Self::AKP153RREV2 => "Ajazz AKP153R (rev. 2)",
             Self::MSDONE => "Mars Gaming MSD-ONE",
+            Self::MSDONE_1005 => "Mars Gaming MSD-ONE",
             Self::GK150K => "Mad Dog GK150K",
             Self::RMV01 => "Risemode Vision 01",
             Self::SFSTC => "Soomfon Stream Controller",
@@ -225,6 +232,7 @@ impl Kind {
             // This method would not be called for "v2"/"v3" devices, so mark them as unreachable
             Self::HSV293SV3 => unreachable!(),
             Self::HSV293SV3_1005 => unreachable!(),
+            Self::MSDONE_1005 => unreachable!(),
             Self::AKP153EREV2 | Self::AKP153RREV2 => unreachable!(),
             Self::SFSTC => unreachable!(),
         }
