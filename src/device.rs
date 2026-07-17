@@ -8,7 +8,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{
     DEVICES, FLUSH_NOTIFY, TOKENS,
-    inputs::opendeck_to_device,
+    inputs::{opendeck_to_device, process_hsv293s_report},
     mappings::{
         COL_COUNT, CandidateDevice, ENCODER_COUNT, KEY_COUNT, Kind, ROW_COUNT,
         get_image_format_for_key,
@@ -180,10 +180,24 @@ async fn device_events_task(candidate: &CandidateDevice) -> Result<(), MirajazzE
 
     log::info!("Reader is ready for {}", candidate.id);
 
+    // HSV293S reports one key per packet. Keep an independent snapshot so the
+    // patched firmware's data[10] flag can produce real key-down/key-up events
+    // without breaking simultaneous holds.
+    let mut hsv293s_button_states = vec![false; KEY_COUNT];
+
     loop {
         log::info!("Reading updates...");
 
-        let updates = match reader.read(None).await {
+        let updates_result = if matches!(&candidate.kind, Kind::HSV293S) {
+            match reader.raw_read_data(512).await {
+                Ok(data) => process_hsv293s_report(&data, &mut hsv293s_button_states),
+                Err(err) => Err(err),
+            }
+        } else {
+            reader.read(None).await
+        };
+
+        let updates = match updates_result {
             Ok(updates) => updates,
             Err(e) => {
                 if !handle_error(&candidate.id, e).await {
