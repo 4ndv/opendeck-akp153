@@ -25,9 +25,9 @@ checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 
 [[package]]
 name = "async-hid"
-version = "0.5.1"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69e70a2c939b6c214ac83665d66aa8de5f5ecda851cd589f2aa71904822963ab"
+checksum = "9f70c6f427f9dc3942b5863b2677a34dfcdd5ec46fe3c21a57883c50403269c5"
 dependencies = [
  "atomic-waker",
  "block2",
@@ -405,9 +405,9 @@ dependencies = [
 
 [[package]]
 name = "mirajazz"
-version = "0.15.1"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8849881003c512f9014b8bc4ff630ec1d83ab94dacd3a8e78fda594cb23d2e6"
+checksum = "e367c789606caab2cfb292879ff5a3688d8917cdf0e0a01d4e8fcbbb0cdf5eb4"
 dependencies = [
  "async-hid",
  "futures-lite",
