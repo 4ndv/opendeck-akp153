@@ -1,7 +1,11 @@
 use device::{handle_error, handle_set_image};
 use mirajazz::device::Device;
 use openaction::*;
-use std::{collections::HashMap, process::exit, sync::{Arc, LazyLock}};
+use std::{
+    collections::HashMap,
+    process::exit,
+    sync::{Arc, LazyLock},
+};
 use tokio::sync::{Mutex, Notify, RwLock};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use watcher::watcher_task;
@@ -87,6 +91,23 @@ impl openaction::GlobalEventHandler for GlobalEventHandler {
                 .ok();
         } else {
             log::error!("Received event for unknown device: {}", event.device);
+        }
+
+        Ok(())
+    }
+
+    async fn system_did_wake_up(
+        &self,
+        _event: SystemDidWakeUpEvent,
+        outbound: &mut OutboundEventManager,
+    ) -> EventHandlerResult {
+        log::info!("The system is woke now, resetting devices");
+
+        let devices = DEVICES.write().await;
+
+        for (id, device) in devices.iter() {
+            let _ = device.reset().await;
+            let _ = outbound.rerender_images(id.to_string()).await;
         }
 
         Ok(())
