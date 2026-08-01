@@ -30,6 +30,7 @@ pub enum Kind {
     SFSTC,
     TMICESC,
     D15,
+    TS115,
 }
 
 pub const AJAZZ_VID: u16 = 0x0300;
@@ -41,6 +42,7 @@ pub const RISEMODE_VID: u16 = 0x0a00;
 pub const SF_STC_VID: u16 = 0x1500;
 pub const TMICE_VID: u16 = 0x0500;
 pub const WOMIER_VID: u16 = 0x0600;
+pub const MONSTARGEAR_VID: u16 = 0x0400;
 
 pub const HSV293S_PID: u16 = 0x6670;
 pub const HSV293SV3_PID: u16 = 0x1014;
@@ -63,6 +65,8 @@ pub const TMICESC_PID: u16 = 0x1001;
 
 pub const D15_PID: u16 = 0x1000;
 
+pub const TS115_PID: u16 = 0x1000;
+
 // Map all queries to usage page 65440 and usage id 1 for now
 pub const HSV293S_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_VID, HSV293S_PID);
 pub const HSV293SV3_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_2_VID, HSV293SV3_PID);
@@ -80,6 +84,7 @@ pub const RMV01_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, RISEMODE_VID, RM
 pub const SF_STC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, SF_STC_VID, SF_STC_PID);
 pub const TMICESC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, TMICE_VID, TMICESC_PID);
 pub const D15_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, WOMIER_VID, D15_PID);
+pub const TS115_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MONSTARGEAR_VID, TS115_PID);
 
 pub const QUERIES: [DeviceQuery; 15] = [
     HSV293S_QUERY,
@@ -97,6 +102,7 @@ pub const QUERIES: [DeviceQuery; 15] = [
     SF_STC_QUERY,
     TMICESC_QUERY,
     D15_QUERY,
+    TS115_QUERY,
 ];
 
 /// Returns correct image format for device kind and key
@@ -178,6 +184,11 @@ impl Kind {
                 _ => None,
             },
 
+            MONSTARGEAR_VID => match pid {
+                TS115_PID => Some(Kind::TS115),
+                _ => None,
+            },
+
             _ => None,
         }
     }
@@ -213,6 +224,7 @@ impl Kind {
             Self::SFSTC => "Soomfon Stream Controller",
             Self::TMICESC => "TMICE Stream Controller",
             Self::D15 => "Womier D15",
+            Self::TS115 => "Monstargear MonstarDeck TS115",
         }
         .to_string()
     }
@@ -230,6 +242,7 @@ impl Kind {
             Self::RMV01 => "RMV01",
             Self::TMICESC => "TMICESC",
             Self::D15 => "D15",
+            Self::TS115 => "TS115",
             // This method would not be called for "v2"/"v3" devices, so mark them as unreachable
             Self::HSV293SV3 => unreachable!(),
             Self::HSV293SV3_1005 => unreachable!(),
