@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.11.0] - 2026-08-01
+
+### 🚀 Features
+
+- *(device)* Add support for Mars Gaming MSD-ONE (0b00:1005)
+- *(device)* Add support for Monstargear MonstarDeck TS115 (0400:1000) (#48)
+- *(device)* Reset and rerender images on system wake
+
+### 💼 Other
+
+- *(deps)* Bump mirajazz to 0.16.2
+
+### ⚙️ Miscellaneous Tasks
+
+- Allow non camel case types in kind enum, rename REV2 kinds
+- Queries length
+
 ## [0.10.0] - 2026-06-01
 
 ### 🚀 Features
