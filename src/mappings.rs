@@ -12,6 +12,7 @@ pub const COL_COUNT: usize = 6;
 pub const KEY_COUNT: usize = ROW_COUNT * COL_COUNT;
 pub const ENCODER_COUNT: usize = 0;
 
+#[allow(non_camel_case_types)]
 #[derive(Debug, Clone)]
 pub enum Kind {
     HSV293S,
@@ -20,8 +21,8 @@ pub enum Kind {
     AKP153,
     AKP153E,
     AKP153R,
-    AKP153EREV2,
-    AKP153RREV2,
+    AKP153E_REV2,
+    AKP153R_REV2,
     MSDONE,
     MSDONE_1005,
     GK150K,
@@ -129,8 +130,8 @@ impl Kind {
             AJAZZ_VID => match pid {
                 AKP153E_PID => Some(Kind::AKP153E),
                 AKP153R_PID => Some(Kind::AKP153R),
-                AKP153E_REV2_PID => Some(Kind::AKP153EREV2),
-                AKP153R_REV2_PID => Some(Kind::AKP153RREV2),
+                AKP153E_REV2_PID => Some(Kind::AKP153E_REV2),
+                AKP153R_REV2_PID => Some(Kind::AKP153R_REV2),
                 _ => None,
             },
 
@@ -187,7 +188,7 @@ impl Kind {
             Self::HSV293SV3 => 3,
             Self::HSV293SV3_1005 => 3,
             Self::MSDONE_1005 => 3,
-            Self::AKP153EREV2 | Self::AKP153RREV2 => 3,
+            Self::AKP153E_REV2 | Self::AKP153R_REV2 => 3,
             Self::SFSTC => 3,
             _ => 1,
         }
@@ -203,8 +204,8 @@ impl Kind {
             Self::AKP153 => "Ajazz AKP153",
             Self::AKP153E => "Ajazz AKP153E",
             Self::AKP153R => "Ajazz AKP153R",
-            Self::AKP153EREV2 => "Ajazz AKP153E (rev. 2)",
-            Self::AKP153RREV2 => "Ajazz AKP153R (rev. 2)",
+            Self::AKP153E_REV2 => "Ajazz AKP153E (rev. 2)",
+            Self::AKP153R_REV2 => "Ajazz AKP153R (rev. 2)",
             Self::MSDONE => "Mars Gaming MSD-ONE",
             Self::MSDONE_1005 => "Mars Gaming MSD-ONE",
             Self::GK150K => "Mad Dog GK150K",
@@ -233,7 +234,7 @@ impl Kind {
             Self::HSV293SV3 => unreachable!(),
             Self::HSV293SV3_1005 => unreachable!(),
             Self::MSDONE_1005 => unreachable!(),
-            Self::AKP153EREV2 | Self::AKP153RREV2 => unreachable!(),
+            Self::AKP153E_REV2 | Self::AKP153R_REV2 => unreachable!(),
             Self::SFSTC => unreachable!(),
         }
         .to_string()
