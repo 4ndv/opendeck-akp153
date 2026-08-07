@@ -25,6 +25,7 @@ Requires OpenDeck 2.5.0 or newer
 - Soomfon Studio Control Deck (5548:6670) (would be displayed as Mirabox HSV293S)
 - Womier D15 (0600:1000)
 - Monstargear MonstarDeck TS115 (0400:1000)
+- Streonor Stream Controller Standard S15 (1500:3005)
 
 ## Platform support
 
