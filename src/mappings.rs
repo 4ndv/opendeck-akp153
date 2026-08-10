@@ -84,7 +84,8 @@ pub const MSD_ONE_1005_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MG_VID, M
 pub const GK150K_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MADDOG_VID, GK150K_PID);
 pub const RMV01_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, RISEMODE_VID, RMV01_PID);
 pub const SF_STC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, SF_STC_VID, SF_STC_PID);
-pub const STREONOR_S15_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, SF_STC_VID, STREONOR_S15_PID);
+pub const STREONOR_S15_QUERY: DeviceQuery =
+    DeviceQuery::new(65440, 1, SF_STC_VID, STREONOR_S15_PID);
 pub const TMICESC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, TMICE_VID, TMICESC_PID);
 pub const D15_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, WOMIER_VID, D15_PID);
 pub const TS115_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MONSTARGEAR_VID, TS115_PID);
@@ -254,7 +255,8 @@ impl Kind {
             Self::HSV293SV3_1005 => unreachable!(),
             Self::MSDONE_1005 => unreachable!(),
             Self::AKP153E_REV2 | Self::AKP153R_REV2 => unreachable!(),
-            Self::SFSTC | Self::STREONOR_S15 => unreachable!(),
+            Self::SFSTC => unreachable!(),
+            Self::STREONOR_S15 => unreachable!(),
         }
         .to_string()
     }
