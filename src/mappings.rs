@@ -27,6 +27,7 @@ pub enum Kind {
     MSDONE_1005,
     GK150K,
     RMV01,
+    RMV01_1006,
     SFSTC,
     TMICESC,
     D15,
@@ -61,6 +62,7 @@ pub const MSD_ONE_1005_PID: u16 = 0x1005;
 pub const GK150K_PID: u16 = 0x1000;
 
 pub const RMV01_PID: u16 = 0x1001;
+pub const RMV01_1006_PID: u16 = 0x1006;
 pub const SF_STC_PID: u16 = 0x3003;
 pub const STREONOR_S15_PID: u16 = 0x3005;
 pub const TMICESC_PID: u16 = 0x1001;
@@ -83,6 +85,8 @@ pub const MSD_ONE_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MG_VID, MSD_ON
 pub const MSD_ONE_1005_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MG_VID, MSD_ONE_1005_PID);
 pub const GK150K_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MADDOG_VID, GK150K_PID);
 pub const RMV01_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, RISEMODE_VID, RMV01_PID);
+pub const RMV01_1006_QUERY: DeviceQuery =
+    DeviceQuery::new(65440, 1, RISEMODE_VID, RMV01_1006_PID);
 pub const SF_STC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, SF_STC_VID, SF_STC_PID);
 pub const STREONOR_S15_QUERY: DeviceQuery =
     DeviceQuery::new(65440, 1, SF_STC_VID, STREONOR_S15_PID);
@@ -90,7 +94,7 @@ pub const TMICESC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, TMICE_VID, TMI
 pub const D15_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, WOMIER_VID, D15_PID);
 pub const TS115_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MONSTARGEAR_VID, TS115_PID);
 
-pub const QUERIES: [DeviceQuery; 17] = [
+pub const QUERIES: [DeviceQuery; 18] = [
     HSV293S_QUERY,
     HSV293SV3_QUERY,
     HSV293SV3_1005_QUERY,
@@ -103,6 +107,7 @@ pub const QUERIES: [DeviceQuery; 17] = [
     MSD_ONE_1005_QUERY,
     GK150K_QUERY,
     RMV01_QUERY,
+    RMV01_1006_QUERY,
     SF_STC_QUERY,
     STREONOR_S15_QUERY,
     TMICESC_QUERY,
@@ -171,6 +176,7 @@ impl Kind {
 
             RISEMODE_VID => match pid {
                 RMV01_PID => Some(Kind::RMV01),
+                RMV01_1006_PID => Some(Kind::RMV01_1006),
                 _ => None,
             },
 
@@ -207,6 +213,7 @@ impl Kind {
             Self::MSDONE_1005 => 3,
             Self::AKP153E_REV2 | Self::AKP153R_REV2 => 3,
             Self::SFSTC | Self::STREONOR_S15 => 3,
+            Self::RMV01_1006 => 3,
             _ => 1,
         }
     }
@@ -227,6 +234,7 @@ impl Kind {
             Self::MSDONE_1005 => "Mars Gaming MSD-ONE",
             Self::GK150K => "Mad Dog GK150K",
             Self::RMV01 => "Risemode Vision 01",
+            Self::RMV01_1006 => "Risemode Vision 01",
             Self::SFSTC => "Soomfon Stream Controller",
             Self::STREONOR_S15 => "Streonor Stream Controller Standard S15",
             Self::TMICESC => "TMICE Stream Controller",
@@ -254,6 +262,7 @@ impl Kind {
             Self::HSV293SV3 => unreachable!(),
             Self::HSV293SV3_1005 => unreachable!(),
             Self::MSDONE_1005 => unreachable!(),
+            Self::RMV01_1006 => unreachable!(),
             Self::AKP153E_REV2 | Self::AKP153R_REV2 => unreachable!(),
             Self::SFSTC => unreachable!(),
             Self::STREONOR_S15 => unreachable!(),
