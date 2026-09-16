@@ -20,6 +20,7 @@ Requires OpenDeck 2.5.0 or newer
 - Mars Gaming MSD-ONE (0b00:1000,0b00:1005)
 - Maddog GK150K (0c00:1000)
 - Risemode Vision 01 (0a00:1001)
+- Risemode Vision 02 (0a00:1000)
 - TMICE Stream Controller (0500:1001)
 - Soomfon Stream Controller XF-CN001 (1500:3003)
 - Soomfon Studio Control Deck (5548:6670) (would be displayed as Mirabox HSV293S)

@@ -61,3 +61,20 @@ fn read_button_press(input: u8, state: u8) -> Result<DeviceInput, MirajazzError>
         &button_states,
     )))
 }
+
+/// Risemode Vision 02: device reports keys 1..=15 in reading order (top-left to bottom-right)
+pub const RMV02_KEY_COUNT: usize = 15;
+
+pub fn process_input_rmv02(input: u8, state: u8) -> Result<DeviceInput, MirajazzError> {
+    log::info!("Processing input (RMV02): {}, {}", input, state);
+
+    let mut states = vec![false; RMV02_KEY_COUNT];
+
+    match input as usize {
+        0 => {}
+        (1..=RMV02_KEY_COUNT) => states[input as usize - 1] = state != 0,
+        _ => return Err(MirajazzError::BadData),
+    }
+
+    Ok(DeviceInput::ButtonStateChange(states))
+}

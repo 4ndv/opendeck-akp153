@@ -8,11 +8,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{
     DEVICES, FLUSH_NOTIFY, TOKENS,
-    inputs::opendeck_to_device,
-    mappings::{
-        COL_COUNT, CandidateDevice, ENCODER_COUNT, KEY_COUNT, Kind, ROW_COUNT,
-        get_image_format_for_key,
-    },
+    mappings::{CandidateDevice, ENCODER_COUNT, Kind, get_image_format_for_key},
 };
 
 /// Initializes a device and listens for events
@@ -46,13 +42,14 @@ pub async fn device_task(candidate: CandidateDevice, token: CancellationToken) {
     };
 
     log::info!("Registering device {}", candidate.id);
+    let (rows, cols) = candidate.kind.layout();
     if let Some(outbound) = OUTBOUND_EVENT_MANAGER.lock().await.as_mut() {
         outbound
             .register_device(
                 candidate.id.clone(),
                 candidate.kind.human_name(),
-                ROW_COUNT as u8,
-                COL_COUNT as u8,
+                rows as u8,
+                cols as u8,
                 ENCODER_COUNT as u8,
                 0,
             )
@@ -116,7 +113,7 @@ pub async fn connect(candidate: &CandidateDevice) -> Result<Device, MirajazzErro
     let result = Device::connect(
         &candidate.dev,
         candidate.kind.protocol_version(),
-        KEY_COUNT,
+        candidate.kind.key_count(),
         ENCODER_COUNT,
     )
     .await;
@@ -171,7 +168,7 @@ async fn device_events_task(candidate: &CandidateDevice) -> Result<(), MirajazzE
 
     let devices_lock = DEVICES.read().await;
     let reader = match devices_lock.get(&candidate.id) {
-        Some(device) => device.get_reader(crate::inputs::process_input),
+        Some(device) => device.get_reader(candidate.kind.input_processor()),
         None => return Ok(()),
     };
     drop(devices_lock);
@@ -250,7 +247,7 @@ pub async fn handle_set_image(
 
             device
                 .set_button_image(
-                    opendeck_to_device(position),
+                    kind.opendeck_to_device(position),
                     get_image_format_for_key(&kind, position),
                     image,
                 )
@@ -261,8 +258,9 @@ pub async fn handle_set_image(
             }
         }
         (Some(position), None) => {
+            let kind = Kind::from_vid_pid(device.vid, device.pid).unwrap();
             device
-                .clear_button_image(opendeck_to_device(position))
+                .clear_button_image(kind.opendeck_to_device(position))
                 .await?;
 
             if let Some(notify) = FLUSH_NOTIFY.read().await.get(id) {

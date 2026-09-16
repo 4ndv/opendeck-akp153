@@ -1,6 +1,7 @@
 use mirajazz::{
     device::DeviceQuery,
-    types::{HidDeviceInfo, ImageFormat, ImageMirroring, ImageMode, ImageRotation},
+    error::MirajazzError,
+    types::{DeviceInput, HidDeviceInfo, ImageFormat, ImageMirroring, ImageMode, ImageRotation},
 };
 
 // 153 in hex is 99
@@ -27,6 +28,7 @@ pub enum Kind {
     MSDONE_1005,
     GK150K,
     RMV01,
+    RMV02,
     SFSTC,
     TMICESC,
     D15,
@@ -61,6 +63,7 @@ pub const MSD_ONE_1005_PID: u16 = 0x1005;
 pub const GK150K_PID: u16 = 0x1000;
 
 pub const RMV01_PID: u16 = 0x1001;
+pub const RMV02_PID: u16 = 0x1000;
 pub const SF_STC_PID: u16 = 0x3003;
 pub const STREONOR_S15_PID: u16 = 0x3005;
 pub const TMICESC_PID: u16 = 0x1001;
@@ -83,6 +86,7 @@ pub const MSD_ONE_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MG_VID, MSD_ON
 pub const MSD_ONE_1005_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MG_VID, MSD_ONE_1005_PID);
 pub const GK150K_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MADDOG_VID, GK150K_PID);
 pub const RMV01_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, RISEMODE_VID, RMV01_PID);
+pub const RMV02_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, RISEMODE_VID, RMV02_PID);
 pub const SF_STC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, SF_STC_VID, SF_STC_PID);
 pub const STREONOR_S15_QUERY: DeviceQuery =
     DeviceQuery::new(65440, 1, SF_STC_VID, STREONOR_S15_PID);
@@ -90,7 +94,7 @@ pub const TMICESC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, TMICE_VID, TMI
 pub const D15_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, WOMIER_VID, D15_PID);
 pub const TS115_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MONSTARGEAR_VID, TS115_PID);
 
-pub const QUERIES: [DeviceQuery; 17] = [
+pub const QUERIES: [DeviceQuery; 18] = [
     HSV293S_QUERY,
     HSV293SV3_QUERY,
     HSV293SV3_1005_QUERY,
@@ -103,6 +107,7 @@ pub const QUERIES: [DeviceQuery; 17] = [
     MSD_ONE_1005_QUERY,
     GK150K_QUERY,
     RMV01_QUERY,
+    RMV02_QUERY,
     SF_STC_QUERY,
     STREONOR_S15_QUERY,
     TMICESC_QUERY,
@@ -112,6 +117,15 @@ pub const QUERIES: [DeviceQuery; 17] = [
 
 /// Returns correct image format for device kind and key
 pub fn get_image_format_for_key(kind: &Kind, key: u8) -> ImageFormat {
+    if matches!(kind, Kind::RMV02) {
+        return ImageFormat {
+            mode: ImageMode::JPEG,
+            size: (100, 100),
+            rotation: ImageRotation::Rot180,
+            mirror: ImageMirroring::None,
+        };
+    }
+
     if kind.protocol_version() == 1 {
         return ImageFormat {
             mode: ImageMode::JPEG,
@@ -171,6 +185,7 @@ impl Kind {
 
             RISEMODE_VID => match pid {
                 RMV01_PID => Some(Kind::RMV01),
+                RMV02_PID => Some(Kind::RMV02),
                 _ => None,
             },
 
@@ -196,6 +211,45 @@ impl Kind {
             },
 
             _ => None,
+        }
+    }
+
+    /// Returns (rows, cols) of the key grid for device kind
+    pub fn layout(&self) -> (usize, usize) {
+        match self {
+            // 15 LCD keys, no side buttons
+            Self::RMV02 => (3, 5),
+            _ => (ROW_COUNT, COL_COUNT),
+        }
+    }
+
+    pub fn key_count(&self) -> usize {
+        let (rows, cols) = self.layout();
+        rows * cols
+    }
+
+    /// Converts opendeck key index to device key index
+    pub fn opendeck_to_device(&self, key: u8) -> u8 {
+        match self {
+            // Device numbers keys bottom-to-top, left-to-right
+            Self::RMV02 => {
+                let (rows, cols) = self.layout();
+                let (rows, cols) = (rows as u8, cols as u8);
+                if key < rows * cols {
+                    (rows - 1 - key / cols) * cols + key % cols
+                } else {
+                    key
+                }
+            }
+            _ => crate::inputs::opendeck_to_device(key),
+        }
+    }
+
+    /// Returns input processing function for device kind
+    pub fn input_processor(&self) -> fn(u8, u8) -> Result<DeviceInput, MirajazzError> {
+        match self {
+            Self::RMV02 => crate::inputs::process_input_rmv02,
+            _ => crate::inputs::process_input,
         }
     }
 
@@ -227,6 +281,7 @@ impl Kind {
             Self::MSDONE_1005 => "Mars Gaming MSD-ONE",
             Self::GK150K => "Mad Dog GK150K",
             Self::RMV01 => "Risemode Vision 01",
+            Self::RMV02 => "Risemode Vision 02",
             Self::SFSTC => "Soomfon Stream Controller",
             Self::STREONOR_S15 => "Streonor Stream Controller Standard S15",
             Self::TMICESC => "TMICE Stream Controller",
@@ -247,6 +302,7 @@ impl Kind {
             Self::MSDONE => "MSDONE",
             Self::GK150K => "GK150K",
             Self::RMV01 => "RMV01",
+            Self::RMV02 => "RMV02",
             Self::TMICESC => "TMICESC",
             Self::D15 => "D15",
             Self::TS115 => "TS115",
