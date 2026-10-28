@@ -16,6 +16,7 @@ use tokio::signal::unix::{SignalKind, signal};
 mod device;
 mod inputs;
 mod mappings;
+mod screen;
 mod watcher;
 
 pub static DEVICES: LazyLock<RwLock<HashMap<String, Device>>> =
@@ -107,6 +108,7 @@ impl openaction::GlobalEventHandler for GlobalEventHandler {
 
         for (id, device) in devices.iter() {
             let _ = device.reset().await;
+            screen::forget(id).await;
             let _ = outbound.rerender_images(id.to_string()).await;
         }
 
