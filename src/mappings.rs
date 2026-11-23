@@ -32,6 +32,7 @@ pub enum Kind {
     D15,
     TS115,
     STREONOR_S15,
+    GK150K_V3,
 }
 
 pub const AJAZZ_VID: u16 = 0x0300;
@@ -44,6 +45,8 @@ pub const SF_STC_VID: u16 = 0x1500;
 pub const TMICE_VID: u16 = 0x0500;
 pub const WOMIER_VID: u16 = 0x0600;
 pub const MONSTARGEAR_VID: u16 = 0x0400;
+// upHere / HotSpot shared VID block (0x1200:0x201x); Mad Dog GK150K v3 "STREAM PANEL" (HOTSPOTEKUSB HID DEMO)
+pub const UPHERE_VID: u16 = 0x1200;
 
 pub const HSV293S_PID: u16 = 0x6670;
 pub const HSV293SV3_PID: u16 = 0x1014;
@@ -69,6 +72,8 @@ pub const D15_PID: u16 = 0x1000;
 
 pub const TS115_PID: u16 = 0x1000;
 
+pub const GK150K_V3_PID: u16 = 0x2014;
+
 // Map all queries to usage page 65440 and usage id 1 for now
 pub const HSV293S_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_VID, HSV293S_PID);
 pub const HSV293SV3_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MIRABOX_2_VID, HSV293SV3_PID);
@@ -89,8 +94,9 @@ pub const STREONOR_S15_QUERY: DeviceQuery =
 pub const TMICESC_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, TMICE_VID, TMICESC_PID);
 pub const D15_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, WOMIER_VID, D15_PID);
 pub const TS115_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, MONSTARGEAR_VID, TS115_PID);
+pub const GK150K_V3_QUERY: DeviceQuery = DeviceQuery::new(65440, 1, UPHERE_VID, GK150K_V3_PID);
 
-pub const QUERIES: [DeviceQuery; 17] = [
+pub const QUERIES: [DeviceQuery; 18] = [
     HSV293S_QUERY,
     HSV293SV3_QUERY,
     HSV293SV3_1005_QUERY,
@@ -108,6 +114,7 @@ pub const QUERIES: [DeviceQuery; 17] = [
     TMICESC_QUERY,
     D15_QUERY,
     TS115_QUERY,
+    GK150K_V3_QUERY,
 ];
 
 /// Returns correct image format for device kind and key
@@ -195,6 +202,11 @@ impl Kind {
                 _ => None,
             },
 
+            UPHERE_VID => match pid {
+                GK150K_V3_PID => Some(Kind::GK150K_V3),
+                _ => None,
+            },
+
             _ => None,
         }
     }
@@ -207,6 +219,7 @@ impl Kind {
             Self::MSDONE_1005 => 3,
             Self::AKP153E_REV2 | Self::AKP153R_REV2 => 3,
             Self::SFSTC | Self::STREONOR_S15 => 3,
+            Self::GK150K_V3 => 3,
             _ => 1,
         }
     }
@@ -232,6 +245,7 @@ impl Kind {
             Self::TMICESC => "TMICE Stream Controller",
             Self::D15 => "Womier D15",
             Self::TS115 => "Monstargear MonstarDeck TS115",
+            Self::GK150K_V3 => "Mad Dog GK150K (v3)",
         }
         .to_string()
     }
@@ -257,6 +271,7 @@ impl Kind {
             Self::AKP153E_REV2 | Self::AKP153R_REV2 => unreachable!(),
             Self::SFSTC => unreachable!(),
             Self::STREONOR_S15 => unreachable!(),
+            Self::GK150K_V3 => unreachable!(),
         }
         .to_string()
     }
