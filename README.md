@@ -26,6 +26,7 @@ Requires OpenDeck 2.5.0 or newer
 - Womier D15 (0600:1000)
 - Monstargear MonstarDeck TS115 (0400:1000)
 - Streonor Stream Controller Standard S15 (1500:3005)
+- Mad Dog GK150 v3 / Stream Panel (1200:2014)
 
 ## Platform support
 
